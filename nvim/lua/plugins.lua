@@ -48,6 +48,7 @@ return packer.startup(function(use)
 		requires = {
 			"nvim-tree/nvim-web-devicons", -- optional, for file icons
 		},
+		config = [[ require("plugins.nvim-tree") ]],
 	})
 
 	use({
