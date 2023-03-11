@@ -18,6 +18,9 @@ local builtin = require("telescope.builtin")
 -- Lists files in your current working directory, including hidden ones
 map("n", "<leader>ff", ':lua require("telescope.builtin").find_files({ no_ignore = true, hidden = true })<CR>', {})
 
+-- Live fuzzy search inside of the currently open buffer
+vim.keymap.set("n", "<leader>fc", builtin.current_buffer_fuzzy_find, {})
+
 -- Search for a string in your current working directory and get results
 -- live as you type, respects .gitignore
 vim.keymap.set("n", "<leader>fg", builtin.live_grep, {})

@@ -15,7 +15,12 @@ return packer.startup(function(use)
 	use("williamboman/mason-lspconfig.nvim")
 
 	-- Configurations for Nvim LSP
-	use("neovim/nvim-lspconfig")
+	use({
+		"neovim/nvim-lspconfig",
+		config = function()
+			require("plugins.lspconfig")
+		end,
+	})
 
 	-- Snippets collection for a set of different programming languages
 	-- https://github.com/rafamadriz/friendly-snippets
