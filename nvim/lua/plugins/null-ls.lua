@@ -32,8 +32,14 @@ end
 null_ls.setup({
 	sources = {
 		null_ls.builtins.formatting.stylua,
-		null_ls.builtins.formatting.prettier,
-		null_ls.builtins.completion.spell,
+		null_ls.builtins.formatting.goimports,
+		-- TODO configure gopls to use goimports but replace gofmt with gofumpt
+		-- Disable gofumpt because goimports acts the same as gofmt (same flags, etc)
+		-- but in addition to code formatting, also fixes imports.
+		-- null_ls.builtins.formatting.gofumpt,
+
+		-- null_ls.builtins.formatting.prettier,
+		-- null_ls.builtins.completion.spell,
 	},
 	on_attach = on_attach,
 })

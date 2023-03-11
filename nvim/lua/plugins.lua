@@ -61,10 +61,14 @@ return packer.startup(function(use)
 		requires = {
 			"nvim-lua/plenary.nvim",
 		},
+		config = [[ require("plugins.null-ls") ]],
 	})
 
 	-- Dracula theme for styling
-	use("Mofiqul/dracula.nvim")
+	use({
+		"sainnhe/sonokai",
+		"Mofiqul/dracula.nvim",
+	})
 
 	-- Treesittter
 	-- Recommended installation https://github.com/nvim-treesitter/nvim-treesitter/wiki/Installation#packernvim

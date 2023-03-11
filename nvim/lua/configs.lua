@@ -1,3 +1,5 @@
+-- TODO split configs into smaller files
+
 -- disable netrw at the very start of your init.lua (strongly advised)
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
@@ -7,3 +9,6 @@ vim.opt.termguicolors = true
 
 -- show line numbers
 vim.opt.number = true
+
+vim.cmd([[colorscheme sonokai]])
+-- vim.cmd([[colorscheme dracula]])
