@@ -1,0 +1,28 @@
+tap "homebrew/bundle"
+tap "homebrew/core"
+tap "homebrew/services"
+
+tap "koekeishiya/formulae"
+
+brew "neovim"
+brew "fish"
+
+# Modern Unix - https://github.com/ibraheemdev/modern-unix
+brew "fzf"
+# brew "bat"
+# brew "git-delta"
+brew "zoxide"
+
+# Shell Prompt
+# brew "starship"
+# Use install script -> curl -sS https://starship.rs/install.sh | sh
+
+# ripgrep is a dependency for telescope.nvim
+# https://github.com/nvim-telescope/telescope.nvim
+brew "ripgrep"
+
+# brew install --cask alacritty
+
+brew "tmux"
+brew "yabai"
+brew "skhd"

@@ -1,0 +1,18 @@
+live_config_reload: true
+
+env:
+  TERM: xterm-256color
+
+font:
+  normal:
+    family: "FiraMono Nerd Font"
+    style: Medium
+  size: 18.0
+
+window:
+  opacity: 0.8
+  padding:
+    x: 14
+    y: 10
+  dynamic_padding: false
+  decorations: buttonless
