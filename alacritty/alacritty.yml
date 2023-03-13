@@ -5,7 +5,7 @@ env:
 
 font:
   normal:
-    family: "FiraMono Nerd Font"
+    family: "FuraMono Nerd Font"
     style: Medium
   size: 18.0
 
