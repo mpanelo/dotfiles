@@ -85,6 +85,7 @@ return packer.startup(function(use)
 		"nvim-telescope/telescope.nvim",
 		tag = "0.1.1",
 		requires = { { "nvim-lua/plenary.nvim" } },
+		config = [[ require("plugins.telescope") ]],
 	})
 
 	-- Lualine information / Status bar
@@ -99,12 +100,5 @@ return packer.startup(function(use)
 			"nvim-treesitter/nvim-treesitter",
 		},
 		config = [[ require("plugins.indent-blankline") ]],
-	})
-
-	use({
-		"akinsho/bufferline.nvim",
-		tag = "v3.*",
-		requires = "nvim-tree/nvim-web-devicons",
-		config = [[ require("plugins.bufferline") ]],
 	})
 end)
