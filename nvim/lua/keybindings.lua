@@ -36,8 +36,5 @@ vim.keymap.set("n", "<leader>fh", builtin.help_tags, {})
 vim.keymap.set("n", "<leader>ft", builtin.treesitter, {})
 
 -- TODO use which-key
--- Bufferline keybindings
-vim.keymap.set("n", "bj", "<cmd>BufferLinePick<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "be", "<cmd>BufferLinePickClose<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "bb", "<cmd>BufferLineCyclePrev<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "bn", "<cmd>BufferLineCycleNext<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>bn", "<cmd>bn<CR>", { desc = "Next" })
+vim.keymap.set("n", "<leader>bb", "<cmd>bp<CR>", { desc = "Previous" })

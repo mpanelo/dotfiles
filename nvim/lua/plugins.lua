@@ -101,4 +101,12 @@ return packer.startup(function(use)
 		},
 		config = [[ require("plugins.indent-blankline") ]],
 	})
+
+	use({
+		"goolord/alpha-nvim",
+		requires = { "nvim-tree/nvim-web-devicons" },
+		config = function()
+			require("alpha").setup(require("alpha.themes.startify").config)
+		end,
+	})
 end)
