@@ -10,7 +10,8 @@ vim.opt.termguicolors = true
 -- show line numbers
 vim.opt.number = true
 
-vim.cmd([[colorscheme sonokai]])
+vim.cmd([[colorscheme tokyonight]])
+-- vim.cmd([[colorscheme sonokai]])
 -- vim.cmd([[colorscheme dracula]])
 
 -- In Insert mode: Use the appropriate number of spaces to insert a

@@ -64,11 +64,7 @@ return packer.startup(function(use)
 		config = [[ require("plugins.null-ls") ]],
 	})
 
-	-- Dracula theme for styling
-	use({
-		"sainnhe/sonokai",
-		"Mofiqul/dracula.nvim",
-	})
+	use("folke/tokyonight.nvim")
 
 	-- Treesittter
 	-- Recommended installation https://github.com/nvim-treesitter/nvim-treesitter/wiki/Installation#packernvim
@@ -78,6 +74,7 @@ return packer.startup(function(use)
 			local ts_update = require("nvim-treesitter.install").update({ with_sync = true })
 			ts_update()
 		end,
+		config = [[ require("plugins.nvim-treesitter") ]],
 	})
 
 	-- Telescope used to fuzzy search files
