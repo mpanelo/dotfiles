@@ -12,6 +12,7 @@ brew "fzf"
 # brew "bat"
 # brew "git-delta"
 brew "zoxide"
+brew "jq"
 
 # Shell Prompt
 # brew "starship"
@@ -26,3 +27,4 @@ brew "ripgrep"
 brew "tmux"
 brew "yabai"
 brew "skhd"
+
