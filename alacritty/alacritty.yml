@@ -10,9 +10,11 @@ font:
   size: 18.0
 
 window:
-  opacity: 0.8
   padding:
     x: 14
     y: 10
   dynamic_padding: false
   decorations: buttonless
+
+import:
+  - ~/.local/share/nvim/site/pack/packer/start/tokyonight.nvim/extras/alacritty/tokyonight_storm.yml
