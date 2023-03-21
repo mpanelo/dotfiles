@@ -9,6 +9,7 @@ brew "fish"
 
 # Modern Unix - https://github.com/ibraheemdev/modern-unix
 brew "fzf"
+brew "fd"
 # brew "bat"
 # brew "git-delta"
 brew "zoxide"
