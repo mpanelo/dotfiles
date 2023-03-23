@@ -16,5 +16,16 @@ window:
   dynamic_padding: false
   decorations: buttonless
 
+key_bindings:
+  - { key: Key1, mods: Command, chars: "\x02\x31" } # Select tmux window 1
+  - { key: Key2, mods: Command, chars: "\x02\x32" } #                ... 2
+  - { key: Key3, mods: Command, chars: "\x02\x33" } #                ... 3
+  - { key: Key4, mods: Command, chars: "\x02\x34" } #                ... 4
+  - { key: Key5, mods: Command, chars: "\x02\x35" } #                ... 5
+  - { key: Key6, mods: Command, chars: "\x02\x36" } #                ... 6
+  - { key: Key7, mods: Command, chars: "\x02\x37" } #                ... 7
+  - { key: Key8, mods: Command, chars: "\x02\x38" } #                ... 8
+  - { key: Key9, mods: Command, chars: "\x02\x39" } #                ... 9
+
 import:
   - ~/.local/share/nvim/site/pack/packer/start/tokyonight.nvim/extras/alacritty/tokyonight_storm.yml
