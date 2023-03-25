@@ -1,4 +1,4 @@
--- TODO split configs into smaller files
+vim.cmd([[colorscheme tokyonight]])
 
 -- disable netrw at the very start of your init.lua (strongly advised)
 vim.g.loaded_netrw = 1
@@ -7,12 +7,10 @@ vim.g.loaded_netrwPlugin = 1
 -- set termguicolors to enable highlight groups
 vim.opt.termguicolors = true
 
--- show line numbers
+-- Show line numbers
 vim.opt.number = true
-
-vim.cmd([[colorscheme tokyonight]])
--- vim.cmd([[colorscheme sonokai]])
--- vim.cmd([[colorscheme dracula]])
+-- Show the line number relative to the line with the cursor in front of each line.
+vim.opt.relativenumber = true
 
 -- In Insert mode: Use the appropriate number of spaces to insert a
 -- <Tab>.  Spaces are used in indents with the '>' and '<' commands and
@@ -26,8 +24,6 @@ vim.opt.autoindent = true
 -- Do smart autoindenting when starting a new line.
 vim.opt.smartindent = true
 
--- TODO figure out how to change indentation based on filetype
-
 -- Number of spaces that a <Tab> in the file counts for.
 vim.opt.tabstop = 4
 
@@ -37,3 +33,10 @@ vim.opt.softtabstop = 4
 
 -- Number of spaces to use for each step of (auto)indent.
 vim.opt.shiftwidth = 4
+
+-- While typing a search command, show where the pattern, as it was typed so far, matches.
+vim.opt.incsearch = true
+-- Ignore case in search patterns.
+vim.opt.ignorecase = true
+-- Override the 'ignorecase' option if the search pattern contains upper case characters.
+vim.opt.smartcase = true

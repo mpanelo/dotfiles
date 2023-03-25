@@ -1,3 +1,4 @@
+-- TODO use which-key
 local map = vim.api.nvim_set_keymap
 
 ---------------
@@ -15,8 +16,13 @@ map("n", "<Leader>lf", [[:lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>]], {
 ---------------
 local builtin = require("telescope.builtin")
 
--- Lists files in your current working directory, including hidden ones
-map("n", "<leader>ff", ':lua require("telescope.builtin").find_files({ no_ignore = true, hidden = true })<CR>', {})
+-- Lists files in your current working directory
+vim.keymap.set("n", "<leader>ff", builtin.find_files, {})
+
+-- Lists all files in your current working directory, including git ignored and hidden files
+vim.keymap.set("n", "<leader>fa", function()
+	builtin.find_files({ no_ignore = true, hidden = true })
+end, {})
 
 -- Live fuzzy search inside of the currently open buffer
 vim.keymap.set("n", "<leader>fc", builtin.current_buffer_fuzzy_find, {})
@@ -35,6 +41,5 @@ vim.keymap.set("n", "<leader>fh", builtin.help_tags, {})
 -- Lists function names and variables from Treesitter
 vim.keymap.set("n", "<leader>ft", builtin.treesitter, {})
 
--- TODO use which-key
 vim.keymap.set("n", "<leader>bn", "<cmd>bn<CR>", { desc = "Next" })
-vim.keymap.set("n", "<leader>bb", "<cmd>bp<CR>", { desc = "Previous" })
+vim.keymap.set("n", "<leader>bp", "<cmd>bp<CR>", { desc = "Previous" })
