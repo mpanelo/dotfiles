@@ -21,6 +21,7 @@ set -Ux VISUAL nvim
 set -Ux fish_greeting
 
 abbr tn "tmux new -s"
+abbr lg "lazygit"
 
 # Load configurations which should not be stored in a version control system (i.e. API keys, sensitive data, persional info, etc.)
 set LOCALCFG (dirname (status --current-filename))/config.local.fish

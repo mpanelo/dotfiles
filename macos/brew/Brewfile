@@ -29,3 +29,4 @@ brew "tmux"
 brew "yabai"
 brew "skhd"
 
+brew "jesseduffield/lazygit/lazygit"
