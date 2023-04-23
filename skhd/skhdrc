@@ -1,8 +1,9 @@
 # skhd - https://github.com/koekeishiya/skhd
 #
 # Sample Configurations
-#   1. https://github.com/koekeishiya/yabai/blob/master/examples/skhdrc
-#   2. https://github.com/joshmedeski/dotfiles/blob/main/.skhdrc
+#   - https://github.com/koekeishiya/yabai/blob/master/examples/skhdrc
+#   - https://github.com/joshmedeski/dotfiles/blob/main/.skhdrc
+#   - https://www.josean.com/posts/yabai-setup
 
 # Focus window
 alt - h : yabai -m window --focus west
@@ -17,15 +18,15 @@ shift + alt - k : yabai -m window --swap north
 shift + alt - l : yabai -m window --swap east
 
 # Move window
-shift + alt + ctrl - h : yabai -m window --warp west
-shift + alt + ctrl - j : yabai -m window --warp south
-shift + alt + ctrl - k : yabai -m window --warp north
-shift + alt + ctrl - l : yabai -m window --warp east
+ctrl + alt - h : yabai -m window --warp west
+ctrl + alt - j : yabai -m window --warp south
+ctrl + alt - k : yabai -m window --warp north
+ctrl + alt - l : yabai -m window --warp east
 
 # Rotate
 alt - r : yabai -m space --rotate 90
 
-# Toggle zoom
+# Zoom
 alt - z : yabai -m window --toggle zoom-fullscreen
 
 # Toggle padding and gap

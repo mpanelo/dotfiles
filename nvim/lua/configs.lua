@@ -40,3 +40,8 @@ vim.opt.incsearch = true
 vim.opt.ignorecase = true
 -- Override the 'ignorecase' option if the search pattern contains upper case characters.
 vim.opt.smartcase = true
+
+-- When on, Vim automatically saves undo history to an undo file when
+-- writing a buffer to a file, and restores undo history from the same
+-- file on buffer read.
+vim.opt.undofile = true
