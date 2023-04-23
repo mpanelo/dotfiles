@@ -1,7 +1,5 @@
 require("plugins")
 require("configs")
 require("mason-config")
-require("lua-ls")
 require("code-completion")
 require("keybindings")
-require("statusbar")

@@ -38,6 +38,7 @@ local capabilities = require("cmp_nvim_lsp").default_capabilities()
 for _, server in ipairs({
 	"gopls",
 	"tsserver",
+	"lua-ls",
 }) do
 	require("lsp." .. server).setup(on_attach, capabilities)
 end

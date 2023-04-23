@@ -91,10 +91,10 @@ return packer.startup(function(use)
 		config = [[ require("plugins.telescope") ]],
 	})
 
-	-- Lualine information / Status bar
 	use({
 		"nvim-lualine/lualine.nvim",
 		requires = { "nvim-tree/nvim-web-devicons", opt = true },
+		config = [[ require("lualine").setup({}) ]],
 	})
 
 	use({
