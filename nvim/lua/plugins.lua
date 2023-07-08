@@ -47,15 +47,6 @@ return packer.startup(function(use)
 	-- VS-Code like pictograms
 	use("onsails/lspkind.nvim")
 
-	-- File explorer tree
-	use({
-		"nvim-tree/nvim-tree.lua",
-		requires = {
-			"nvim-tree/nvim-web-devicons", -- optional, for file icons
-		},
-		config = [[ require("plugins.nvim-tree") ]],
-	})
-
 	use({
 		"jose-elias-alvarez/null-ls.nvim",
 		requires = {
@@ -117,5 +108,10 @@ return packer.startup(function(use)
 		"lewis6991/gitsigns.nvim",
 		-- tag = 'release' -- To use the latest release (do not use this if you run Neovim nightly or dev builds!)
 		config = [[ require("plugins.gitsigns") ]],
+	})
+
+	use({
+		"nvim-telescope/telescope-file-browser.nvim",
+		requires = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" },
 	})
 end)

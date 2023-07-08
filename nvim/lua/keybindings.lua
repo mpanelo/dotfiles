@@ -1,10 +1,8 @@
 -- TODO use which-key
 local map = vim.api.nvim_set_keymap
 
----------------
--- nvim-tree --
----------------
-map("n", "<Leader>n", [[:NvimTreeToggle<CR>]], {})
+map("n", "<space>fb", ":Telescope file_browser path=%:p:h select_buffer=true<CR>", { noremap = true })
+map("n", "<space>fe", ":Telescope file_browser<CR>", { noremap = true })
 
 ----------------
 -- lsp-config --
