@@ -82,6 +82,8 @@ return packer.startup(function(use)
 		config = [[ require("plugins.telescope") ]],
 	})
 
+	use("nvim-tree/nvim-web-devicons")
+
 	use({
 		"nvim-lualine/lualine.nvim",
 		requires = { "nvim-tree/nvim-web-devicons", opt = true },

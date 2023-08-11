@@ -14,6 +14,7 @@ require("nvim-treesitter.configs").setup({
 		"yaml",
 		"css",
 		"html",
+		"svelte",
 	},
 
 	-- Install parsers synchronously (only applied to `ensure_installed`)

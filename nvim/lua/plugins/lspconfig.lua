@@ -39,6 +39,7 @@ for _, server in ipairs({
 	"gopls",
 	"tsserver",
 	"lua-ls",
+	"svelte",
 }) do
 	require("lsp." .. server).setup(on_attach, capabilities)
 end
