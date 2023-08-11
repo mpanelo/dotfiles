@@ -3,13 +3,16 @@ local telescope = require("telescope")
 telescope.setup({
 	defaults = {
 		layout_strategy = "horizontal",
+		layout_config = {
+			height = 0.95,
+			width = 0.95,
+		},
 		path_display = {
 			shorten = {
 				len = 1,
 				exclude = { -2, -1 },
 			},
 		},
-		layout_config = { prompt_position = "top" },
 		selection_strategy = "reset",
 		sorting_strategy = "ascending",
 		color_devicons = true,
