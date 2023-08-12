@@ -32,7 +32,9 @@ end
 null_ls.setup({
 	sources = {
 		null_ls.builtins.formatting.stylua,
-		null_ls.builtins.formatting.prettierd,
+		null_ls.builtins.formatting.prettierd.with({
+			extra_filetypes = { "svelte" },
+		}),
 		null_ls.builtins.formatting.goimports,
 		-- TODO configure gopls to use goimports but replace gofmt with gofumpt
 		-- Disable gofumpt because goimports acts the same as gofmt (same flags, etc)

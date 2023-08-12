@@ -7,6 +7,8 @@ M.setup = function(on_attach, capabilities)
 		on_attach = on_attach,
 		capabilities = capabilities,
 		filetypes = {
+			"javascript",
+			"javascriptreact",
 			"typescript",
 			"typescriptreact",
 			"typescript.tsx",
