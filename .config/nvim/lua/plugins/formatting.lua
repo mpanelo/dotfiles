@@ -1,12 +1,13 @@
 return {
     "stevearc/conform.nvim",
     opts = {
-        lua = { "stylua" },
-        -- Conform will run multiple formatters sequentially
-        python = { "isort", "black" },
-        -- Use a sub-list to run only the first available formatter
-        javascript = { { "prettierd", "prettier" } },
-
+        formatters_by_ft = {
+            lua = { "stylua" },
+            -- Conform will run multiple formatters sequentially
+            python = { "isort", "black" },
+            -- Use a sub-list to run only the first available formatter
+            javascript = { { "prettierd", "prettier" } },
+        },
         format_on_save = function(bufnr)
             -- Disable with a global or buffer-local variable
             if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
