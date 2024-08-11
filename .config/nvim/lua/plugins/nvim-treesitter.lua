@@ -18,6 +18,8 @@ return {
 					"gowork",
 					"gosum",
 					"comment",
+					"json",
+					"yaml",
 				},
 				sync_install = false,
 				highlight = { enable = true },
