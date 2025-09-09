@@ -43,6 +43,7 @@ return {
 							constantValues = true,
 							rangeVariableTypes = true,
 						},
+                        buildFlags = { "-tags=embeddedpg" },
 						analyses = {
 							unusedparams = true,
 							useany = true,
@@ -53,9 +54,14 @@ return {
 				},
 			})
 
-			lspconfig.tsserver.setup({
+			lspconfig.ts_ls.setup({
 				on_attach = on_attach,
 				capabilities = lsp_capabilities,
+                settings = {
+                    implicitProjectConfiguration = {
+                            checkJs = true
+                    }
+                },
 			})
 
 			lspconfig.lua_ls.setup({
