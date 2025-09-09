@@ -1,9 +1,6 @@
 import = ["/Users/mpanelo/.local/share/nvim/lazy/tokyonight.nvim/extras/alacritty/tokyonight_night.toml"]
 live_config_reload = true
 
-[env]
-TERM = "xterm-256color"
-
 [font]
 size = 18.0
 
