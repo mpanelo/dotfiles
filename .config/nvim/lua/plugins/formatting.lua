@@ -12,6 +12,8 @@ return {
 			typescriptreact = { "prettierd", "prettier", stop_after_first = true },
 			json = { "prettierd", "prettier", stop_after_first = true },
 			go = { "goimports", "gofumpt" },
+			nix = { "alejandra" },
+			bash = { "shfmt" },
 		},
 		format_on_save = function(bufnr)
 			-- Disable with a global or buffer-local variable
