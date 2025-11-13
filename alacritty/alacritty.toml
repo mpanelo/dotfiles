@@ -5,8 +5,8 @@ live_config_reload = true
 size = 18.0
 
 [font.normal]
-family = "FuraMono Nerd Font"
-style = "Medium"
+family = "JetBrainsMono Nerd Font"
+style = "Regular"
 
 [[keyboard.bindings]]
 chars = "\u00021"
