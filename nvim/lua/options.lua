@@ -1,8 +1,11 @@
+-- -- Built-in completion
+vim.o.complete = ".,w,b,kspell" -- Use less sources
+vim.o.completeopt = "menuone,noselect,fuzzy,nosort" -- Use custom behavior
+
 -- When nonempty, shows the effects of |:substitute|, |:smagic|, |:snomagic|
 -- and user commands with the |:command-preview| flag as you type. The 'split'
 -- option shows the effects of a command incrementally in the buffer, but also
 -- shows partial off-screen results in a preview window.
-
 vim.opt.inccommand = "split"
 
 -- The : command allows you to use the tab completion to find the longest common
