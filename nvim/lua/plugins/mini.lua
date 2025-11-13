@@ -96,4 +96,6 @@ return {
 			map_multistep("i", "<BS>", { "minipairs_bs" })
 		end,
 	},
+	{ "nvim-mini/mini.icons", version = false },
+	{ "nvim-mini/mini.pairs", version = false, opts = { modes = { command = true } } },
 }
