@@ -8,10 +8,6 @@
 -- 		vim.keymap.set("n", lhs, rhs, opts)
 -- 	end
 --
--- 	map("gd", function()
--- 		require("telescope.builtin").lsp_definitions({ reuse_win = true })
--- 	end, { desc = "Goto Definition" })
--- 	map("gr", "<cmd>Telescope lsp_references<cr>", { desc = "References", nowait = true })
 -- 	map("gy", function()
 -- 		require("telescope.builtin").lsp_type_definitions({ reuse_win = true })
 -- 	end, { desc = "Goto T[y]pe Definition" })
@@ -32,6 +28,17 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				telescope.lsp_implementations()
 			end, { noremap = true, silent = true, buffer = args.buf })
 		end
+		if client:supports_method("textDocument/definition") then
+			vim.keymap.set("n", "gd", function()
+				require("telescope.builtin").lsp_definitions()
+			end, { noremap = true, silent = true, buffer = args.buf })
+		end
+		if client:supports_method("textDocument/references") then
+			vim.keymap.set("n", "gR", function()
+				require("telescope.builtin").lsp_references()
+			end, { noremap = true, silent = true, buffer = args.buf })
+		end
+
 		-- Enable auto-completion. Note: Use CTRL-Y to select an item. |complete_CTRL-Y|
 		-- if client:supports_method("textDocument/completion") then
 		-- Optional: trigger autocompletion on EVERY keypress. May be slow!
