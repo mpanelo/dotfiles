@@ -27,6 +27,11 @@ return {
 							-- group = "@property",
 						},
 						{
+							action = "Telescope find_files",
+							desc = "Find File",
+							key = "f",
+						},
+						{
 							action = function()
 								vim.api.nvim_input("<cmd>qa<cr>")
 							end,

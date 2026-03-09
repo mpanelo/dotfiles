@@ -14,3 +14,9 @@ map("i", ",", ",<C-g>U")
 -- Diagnostic
 map("n", "<leader>od", vim.diagnostic.open_float)
 map("n", "<leader>cd", close_diagnostic_float, { desc = "Close diagnostic float" })
+
+local wk = require("which-key")
+wk.add({
+	{ "<leader>e", ":Neotree filesystem reveal left toggle<CR>", desc = "Open Neotree" },
+	{ "<leader>Eg", ":Neotree git_status reveal left toggle<CR>", desc = "Open Neotree git status" },
+})

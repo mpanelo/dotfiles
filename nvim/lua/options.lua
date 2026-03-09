@@ -13,7 +13,7 @@ vim.opt.inccommand = "split"
 vim.opt.wildmode = "list:longest,list:full"
 
 vim.opt.wildignore:append({ "node_modules", ".git" }) -- ignore certain files when using tab completion
-vim.opt.suffixesadd:append({ ".java", ".rs" }) -- search for suffexes using gf
+vim.opt.suffixesadd:append({ ".java", ".rs" }) -- search for suffixes using gf
 
 -- In Insert mode: Use the appropriate number of spaces to insert a
 -- <Tab>. Spaces are used in indents with the '>' and '<' commands and
@@ -24,7 +24,7 @@ vim.opt.expandtab = true
 -- in Insert mode or when using the "o" or "O" command).
 vim.opt.autoindent = true
 
--- Do smart autoindenting when starting a new line.
+-- Do smart auto indenting when starting a new line.
 vim.opt.smartindent = true
 
 -- Number of spaces that a <Tab> in the file counts for.
@@ -84,3 +84,6 @@ vim.api.nvim_create_autocmd("CursorMoved", {
 	end,
 	desc = "Open diagnostic float on cursor move",
 })
+
+vim.opt.spelllang = "en_us"
+vim.opt.spell = true
