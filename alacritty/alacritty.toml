@@ -1,3 +1,7 @@
+[terminal]
+[terminal.shell]
+program = "/opt/homebrew/bin/fish"
+args = ["-l"]
 
 [font]
 size = 18.0
