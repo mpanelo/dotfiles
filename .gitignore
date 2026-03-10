@@ -1,3 +1,4 @@
 .DS_Store
 macos/brew/Brewfile.lock.json
 tmux/plugins
+fish_variables
