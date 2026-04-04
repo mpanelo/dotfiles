@@ -11,7 +11,21 @@ OR `<Prefix> + $`
 
 # neovim
 
-## Copy to system clipboard
+## Commands
+
+### Set the current dir for the current window
+
+`:lcd %:p:h`
+
+- `%` represents the current file.
+- `%:p` the absolute path.
+- `%:p:h` the directory containing the file. `:h` (head) modifier strips one level off the path.
+
+Also see `:help lcd`
+
+## Key mappings
+
+### Copy to system clipboard
 
 `"+y`
 
