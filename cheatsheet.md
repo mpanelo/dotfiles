@@ -9,7 +9,7 @@ tmux rename-session -t [target-session] [new-name]
 
 OR `<Prefix> + $`
 
-# vim
+# neovim
 
 ## Copy to system clipboard
 
