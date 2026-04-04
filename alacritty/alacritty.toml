@@ -10,6 +10,7 @@ size = 18.0
 family = "JetBrainsMono Nerd Font"
 style = "Regular"
 
+# https://github.com/alacritty/alacritty/issues/7608#issuecomment-1975006973
 [[keyboard.bindings]]
 chars = "\u001f"
 key = "Slash"
