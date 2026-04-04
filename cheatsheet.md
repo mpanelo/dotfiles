@@ -29,6 +29,12 @@ Also see `:help lcd`
 
 `"+y`
 
+### Enter "Insert Normal" mode
+
+Execute one normal mode command before returning to insert mode.
+
+`Ctrl-o`
+
 ## Telescope
 
 ### fzf-native
