@@ -11,6 +11,11 @@ family = "JetBrainsMono Nerd Font"
 style = "Regular"
 
 [[keyboard.bindings]]
+chars = "\u001f"
+key = "Slash"
+mods = "Control"
+
+[[keyboard.bindings]]
 chars = "\u00021"
 key = "Key1"
 mods = "Command"

@@ -29,7 +29,22 @@ return {
 	config = function(_, opts)
 		local telescope = require("telescope")
 
-		telescope.setup(opts)
+		telescope.setup({
+			defaults = {
+				layout_strategy = "flex",
+				layout_config = {
+					flex = {
+						flip_columns = 130,
+					},
+					horizontal = {
+						preview_width = 0.5,
+					},
+					vertical = {
+						preview_height = 0.5,
+					},
+				},
+			},
+		})
 
 		telescope.load_extension("fzf")
 		telescope.load_extension("live_grep_args")
