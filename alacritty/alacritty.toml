@@ -64,6 +64,7 @@ mods = "Command"
 [window]
 decorations = "buttonless"
 startup_mode = "Maximized"
+option_as_alt = "OnlyRight"
 
 [window.padding]
 x = 14
