@@ -14,5 +14,14 @@ abbr lg "lazygit"
 
 starship init fish | source
 zoxide init fish | source
+
+# This command will install keybindings for fishshell, but we do not want
+# fzf-history-widget and fzf-file-widget because fzf.fish provides
+# a better history and file search interface.
 fzf --fish | source
+bind --erase -- \ct
+bind --erase --mode insert -- \ct
+bind --erase -- \cr
+bind --erase --mode insert -- \cr
+
 direnv hook fish | source
