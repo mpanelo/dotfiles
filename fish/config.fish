@@ -15,3 +15,4 @@ abbr lg "lazygit"
 starship init fish | source
 zoxide init fish | source
 fzf --fish | source
+direnv hook fish | source
