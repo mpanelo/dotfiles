@@ -1,0 +1,22 @@
+# Add fisher plugins to .gitignore because fisher does not handle 
+# synchronization across machines
+completions/fisher.fish
+completions/fzf_configure_bindings.fish
+conf.d/fzf.fish
+functions/__bass.py
+functions/_fzf_configure_bindings_help.fish
+functions/_fzf_extract_var_info.fish
+functions/_fzf_preview_changed_file.fish
+functions/_fzf_preview_file.fish
+functions/_fzf_report_diff_type.fish
+functions/_fzf_report_file_type.fish
+functions/_fzf_search_directory.fish
+functions/_fzf_search_git_log.fish
+functions/_fzf_search_git_status.fish
+functions/_fzf_search_history.fish
+functions/_fzf_search_processes.fish
+functions/_fzf_search_variables.fish
+functions/_fzf_wrapper.fish
+functions/bass.fish
+functions/fisher.fish
+functions/fzf_configure_bindings.fish
