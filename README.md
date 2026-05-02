@@ -6,7 +6,7 @@
 
 I've sorted the list using a mix of priority and complexity.
 
-[ ] Add a keybinding for LSP code actions
+[ ] How should I logically organize key bindings from different plugins? Currently, there is a lot of mappings under `g`.
 [ ] Add a key map to stop/stop all snippet sessions
 [ ] Setup a Toml, Json, Yaml LSP for Neovim
 [ ] Enable / learn the undotree
