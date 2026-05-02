@@ -9,7 +9,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				"n",
 				lhs,
 				rhs,
-				{ silent = true, buffer = args.bufn, desc = desc }
+				{ silent = true, buffer = args.buf, desc = desc }
 			)
 		end
 
