@@ -26,17 +26,17 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		if client:supports_method("textDocument/implementation") then
 			vim.keymap.set("n", "gI", function()
 				telescope.lsp_implementations()
-			end, { noremap = true, silent = true, buffer = args.buf })
+			end, { noremap = true, silent = true, buffer = args.buf, desc = "Go to Implementation" })
 		end
 		if client:supports_method("textDocument/definition") then
 			vim.keymap.set("n", "gd", function()
 				require("telescope.builtin").lsp_definitions()
-			end, { noremap = true, silent = true, buffer = args.buf })
+			end, { noremap = true, silent = true, buffer = args.buf, desc = "Go to Definition" })
 		end
 		if client:supports_method("textDocument/references") then
 			vim.keymap.set("n", "gR", function()
 				require("telescope.builtin").lsp_references()
-			end, { noremap = true, silent = true, buffer = args.buf })
+			end, { noremap = true, silent = true, buffer = args.buf, desc = "Go to References" })
 		end
 
 		-- Enable auto-completion. Note: Use CTRL-Y to select an item. |complete_CTRL-Y|

@@ -6,17 +6,33 @@ local function close_diagnostic_float()
 	end
 end
 
-local map = vim.keymap.set
-
-map("n", "<leader>sr", ":%s/<C-r><C-w>//g<Left><Left>")
-map("i", ",", ",<C-g>U")
-
--- Diagnostic
-map("n", "<leader>od", vim.diagnostic.open_float)
-map("n", "<leader>cd", close_diagnostic_float, { desc = "Close diagnostic float" })
-
 local wk = require("which-key")
+
 wk.add({
-	{ "<leader>e", ":Neotree filesystem reveal left toggle<CR>", desc = "Open Neotree" },
-	{ "<leader>Eg", ":Neotree git_status reveal left toggle<CR>", desc = "Open Neotree git status" },
+	{
+		"<leader>sr",
+		":%s/<C-r><C-w>//g<Left><Left>",
+		desc = "Search/Replace Word",
+	},
+	{ "<leader>od", vim.diagnostic.open_float, desc = "Open Diagnostic Float" },
+	{ "<leader>cd", close_diagnostic_float, desc = "Close Diagnostic Float" },
+	{
+		"<leader>e",
+		":Neotree filesystem reveal left toggle<CR>",
+		desc = "Open Neotree",
+		icon = "󰙅",
+	},
+	{
+		"<leader>Es",
+		":Neotree filesystem show left toggle<CR>",
+		desc = "Show Neotree (no focus)",
+		icon = "󰙅",
+	},
+	{
+		"<leader>Eg",
+		":Neotree git_status reveal left toggle<CR>",
+		desc = "Open Neotree git status",
+		icon = "󰙅",
+	},
+	{ ",", ",<C-g>U", mode = "i" },
 })
