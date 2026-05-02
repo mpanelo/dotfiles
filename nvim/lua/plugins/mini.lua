@@ -16,7 +16,10 @@ return {
 					-- For more complicated textobjects that require structural awareness,
 					-- use tree-sitter. This example makes `aF`/`iF` mean around/inside function
 					-- definition (not call). See `:h MiniAi.gen_spec.treesitter()` for details.
-					F = ai.gen_spec.treesitter({ a = "@function.outer", i = "@function.inner" }),
+					F = ai.gen_spec.treesitter({
+						a = "@function.outer",
+						i = "@function.inner",
+					}),
 				},
 
 				-- 'mini.ai' by default mostly mimics built-in search behavior: first try
@@ -40,9 +43,14 @@ return {
 
 			-- Customize post-processing of LSP responses for a better user experience.
 			-- Don't show 'Text' suggestions (usually noisy) and show snippets last.
-			local process_items_opts = { kind_priority = { Text = -1, Snippet = 99 } }
+			local process_items_opts =
+				{ kind_priority = { Text = -1, Snippet = 99 } }
 			local process_items = function(items, base)
-				return completion.default_process_items(items, base, process_items_opts)
+				return completion.default_process_items(
+					items,
+					base,
+					process_items_opts
+				)
 			end
 
 			return {
@@ -77,7 +85,9 @@ return {
 					-- Always load 'snippets/global.json' from config directory
 					-- snippets.gen_loader.from_file(config_path .. '/snippets/global.json'),
 					-- Load from 'snippets/' directory of plugins, like 'friendly-snippets'
-					snippets.gen_loader.from_lang({ lang_patterns = lang_patterns }),
+					snippets.gen_loader.from_lang({
+						lang_patterns = lang_patterns,
+					}),
 				},
 			})
 
@@ -97,5 +107,9 @@ return {
 		end,
 	},
 	{ "nvim-mini/mini.icons", version = false },
-	{ "nvim-mini/mini.pairs", version = false, opts = { modes = { command = true } } },
+	{
+		"nvim-mini/mini.pairs",
+		version = false,
+		opts = { modes = { command = true } },
+	},
 }
