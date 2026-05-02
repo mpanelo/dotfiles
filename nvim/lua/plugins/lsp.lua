@@ -1,14 +1,7 @@
 return {
 	{
-		"neovim/nvim-lspconfig",
-		event = { "BufReadPre", "BufNewFile" },
-		dependencies = {
-			"mason.nvim",
-			{ "williamboman/mason-lspconfig.nvim", config = function() end },
-		},
-	},
-	{
 		"williamboman/mason.nvim",
+		lazy = false,
 		cmd = "Mason",
 		keys = { { "<leader>cm", "<cmd>Mason<cr>", desc = "Mason" } },
 		build = ":MasonUpdate",
