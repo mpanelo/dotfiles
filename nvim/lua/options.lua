@@ -1,6 +1,6 @@
 -- -- Built-in completion
-vim.o.complete = ".,w,b,kspell" -- Use less sources
-vim.o.completeopt = "menuone,noselect,fuzzy,nosort" -- Use custom behavior
+vim.opt.complete = ".,w,b,kspell" -- Use less sources
+vim.opt.completeopt = "menuone,noselect,fuzzy,nosort" -- Use custom behavior
 
 -- When nonempty, shows the effects of |:substitute|, |:smagic|, |:snomagic|
 -- and user commands with the |:command-preview| flag as you type. The 'split'
@@ -75,18 +75,24 @@ vim.diagnostic.config({
 	},
 })
 
-vim.api.nvim_create_autocmd("CursorMoved", {
-	callback = function()
-		local diagnostic = vim.diagnostic.get(
-			0,
-			{ buf = 0, lnum = vim.api.nvim_win_get_cursor(0)[1] - 1 }
-		)
-		if #diagnostic > 0 then
-			vim.diagnostic.open_float(0, { scope = "line", focusable = false })
-		end
-	end,
-	desc = "Open diagnostic float on cursor move",
-})
-
 vim.opt.spelllang = "en_us"
 vim.opt.spell = true
+
+-- Prevent sign column from jumping in/out
+vim.opt.signcolumn = "yes"
+
+-- use GUI colors for the terminal
+vim.opt.termguicolors = true
+
+-- Keep N lines visible above/below cursor while scrolling
+vim.opt.scrolloff = 8
+
+-- Open splits in the more intuitive direction
+vim.opt.splitright = true
+vim.opt.splitbelow = true
+
+-- Highlight the line the cursor is on
+vim.opt.cursorline = true
+
+-- Visual guide for line length
+vim.opt.colorcolumn = "120"
