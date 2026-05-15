@@ -9,6 +9,7 @@ return {
 			-- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
 		},
 		opts = {
+			close_if_last_window = true, -- Close Neo-tree if it is the last window left in the tab
 			filesystem = {
 				filtered_items = {
 					always_show = {
@@ -19,6 +20,10 @@ return {
 					},
 				},
 			},
+			follow_current_file = {
+				enabled = true, -- This will find and focus the file in the active buffer every time
+			},
+			use_libuv_file_watcher = true,
 		},
 	},
 	{
@@ -28,10 +33,18 @@ return {
 			spec = {
 				{
 					mode = { "n", "v" },
+					{ "<leader>c", group = "Code" },
+					{
+						"<leader>E",
+						group = "Neo-tree (extended)",
+						icon = "󰙅",
+					},
 					{ "<leader>f", group = "File/Find" },
 					{ "<leader>g", group = "Git" },
 					{ "<leader>gh", group = "Hunks" },
+					{ "<leader>o", group = "Open" },
 					{ "<leader>s", group = "Search" },
+					{ "<leader>x", group = "Diagnostics" },
 					{ "[", group = "Prev" },
 					{ "]", group = "Next" },
 				},
@@ -44,71 +57,6 @@ return {
 					require("which-key").show({ global = false })
 				end,
 				desc = "Buffer Local Keymaps (which-key)",
-			},
-		},
-	},
-	{
-		"folke/trouble.nvim",
-		opts = {}, -- for default options, refer to the configuration section for custom setup.
-		cmd = "Trouble",
-		keys = {
-			{
-				"<leader>xx",
-				"<cmd>Trouble diagnostics toggle<cr>",
-				desc = "Diagnostics (Trouble)",
-			},
-			{
-				"<leader>xX",
-				"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
-				desc = "Buffer Diagnostics (Trouble)",
-			},
-			{
-				"<leader>cs",
-				"<cmd>Trouble symbols toggle focus=false<cr>",
-				desc = "Symbols (Trouble)",
-			},
-			{
-				"<leader>cl",
-				"<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
-				desc = "LSP Definitions / references / ... (Trouble)",
-			},
-			{
-				"<leader>xL",
-				"<cmd>Trouble loclist toggle<cr>",
-				desc = "Location List (Trouble)",
-			},
-			{
-				"<leader>xQ",
-				"<cmd>Trouble qflist toggle<cr>",
-				desc = "Quickfix List (Trouble)",
-			},
-			{
-				"[q",
-				function()
-					if require("trouble").is_open() then
-						require("trouble").prev({ skip_groups = true, jump = true })
-					else
-						local ok, err = pcall(vim.cmd.cprev)
-						if not ok then
-							vim.notify(err, vim.log.levels.ERROR)
-						end
-					end
-				end,
-				desc = "Previous Trouble/Quickfix Item",
-			},
-			{
-				"]q",
-				function()
-					if require("trouble").is_open() then
-						require("trouble").next({ skip_groups = true, jump = true })
-					else
-						local ok, err = pcall(vim.cmd.cnext)
-						if not ok then
-							vim.notify(err, vim.log.levels.ERROR)
-						end
-					end
-				end,
-				desc = "Next Trouble/Quickfix Item",
 			},
 		},
 	},
@@ -134,7 +82,11 @@ return {
 				desc = "Previous Todo Comment",
 			},
 			{ "<leader>st", "<cmd>TodoTelescope<cr>", desc = "Todo" },
-			{ "<leader>sT", "<cmd>TodoTelescope keywords=TODO,FIX,FIXME<cr>", desc = "Todo/Fix/Fixme" },
+			{
+				"<leader>sT",
+				"<cmd>TodoTelescope keywords=TODO,FIX,FIXME<cr>",
+				desc = "Todo/Fix/Fixme",
+			},
 		},
 	},
 	{
@@ -178,16 +130,41 @@ return {
 				end, "Prev Hunk")
 
 				-- Actions
-				map({ "n", "v" }, "<leader>ghs", ":Gitsigns stage_hunk<CR>", "Stage Hunk")
-				map({ "n", "v" }, "<leader>ghr", ":Gitsigns reset_hunk<CR>", "Reset Hunk")
+				map(
+					{ "n", "v" },
+					"<leader>ghs",
+					":Gitsigns stage_hunk<CR>",
+					"Stage Hunk"
+				)
+				map(
+					{ "n", "v" },
+					"<leader>ghr",
+					":Gitsigns reset_hunk<CR>",
+					"Reset Hunk"
+				)
 				map("n", "<leader>ghS", gitsigns.stage_buffer, "Stage Buffer")
-				map("n", "<leader>ghu", gitsigns.undo_stage_hunk, "Undo Stage Hunk")
+				map(
+					"n",
+					"<leader>ghu",
+					gitsigns.undo_stage_hunk,
+					"Undo Stage Hunk"
+				)
 				map("n", "<leader>ghR", gitsigns.reset_buffer, "Reset Buffer")
-				map("n", "<leader>ghp", gitsigns.preview_hunk_inline, "Preview Hunk Inline")
+				map(
+					"n",
+					"<leader>ghp",
+					gitsigns.preview_hunk_inline,
+					"Preview Hunk Inline"
+				)
 				map("n", "<leader>ghb", function()
 					gitsigns.blame_line({ full = true })
 				end, "Blame Line")
-				map("n", "<leader>ghB", gitsigns.toggle_current_line_blame, "Blame Toggle Current Line")
+				map(
+					"n",
+					"<leader>ghB",
+					gitsigns.toggle_current_line_blame,
+					"Blame Toggle Current Line"
+				)
 				map("n", "<leader>ghd", gitsigns.diffthis, "Diff This")
 				map("n", "<leader>ghD", function()
 					gitsigns.diffthis("~")

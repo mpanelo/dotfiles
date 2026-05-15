@@ -28,8 +28,15 @@ return {
 						},
 						{
 							action = "Telescope find_files",
-							desc = "Find File",
+							desc = " Find File",
+							icon = "󰍉 ",
 							key = "f",
+						},
+						{
+							action = "Telescope oldfiles cwd_only=true",
+							desc = " Find Recent",
+							icon = "󰋚 ",
+							key = "r",
 						},
 						{
 							action = function()
