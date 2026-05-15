@@ -33,7 +33,8 @@ return {
 			spec = {
 				{
 					mode = { "n", "v" },
-					{ "<leader>c", group = "Code" },
+					{ "<leader>b", group = "Buffers", icon = "󰈢" },
+					{ "<leader>bb", icon = "󰈢" },
 					{
 						"<leader>E",
 						group = "Neo-tree (extended)",

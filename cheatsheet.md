@@ -33,7 +33,29 @@ Also see `:help lcd`
 
 Execute one normal mode command before returning to insert mode.
 
-`Ctrl-o`
+`<C-o>`
+
+### Diagnostics
+
+`]d` jumps to the next diagnostic in the buffer.
+`[d` jumps to the previous diagnostic in the buffer.
+`]D` jumps to the last diagnostic in the buffer.
+`[D` jumps to the first diagnostic in the buffer.
+
+`<C-w>d` shows diagnostic at cursor in a floating window.
+
+### LSP
+
+`<C-]>` jump to definition (use `<C-t>` to go back).
+`<C-x>` then `<C-o>` will trigger code completion menu.
+`grn`   renames all references of the symbol under the cursor.
+`gra`   shows a list of code actions available in the line under the cursor.
+`grr`   lists all the references of the symbol under the cursor.
+`gri`   lists all the implementations for the symbol under the cursor.
+`<C-s>` in insert mode displays the function signature of the symbol under the cursor.
+
+`grr`, `gri` and `gd` map to Telescope commands. You can send the results to 
+Quickfix by using `<C-q>`. Go back to Telescope `:Telescope resume`.
 
 ## Telescope
 
