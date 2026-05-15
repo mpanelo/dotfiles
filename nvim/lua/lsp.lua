@@ -18,13 +18,13 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		vim.bo[args.buf].omnifunc = "v:lua.MiniCompletion.completefunc_lsp"
 
 		if client:supports_method("textDocument/implementation") then
-			map("gI", telescope.lsp_implementations, "Go to Implementation")
+			map("gri", telescope.lsp_implementations, "Go to Implementation")
 		end
 		if client:supports_method("textDocument/definition") then
 			map("gd", telescope.lsp_definitions, "Go to Definition")
 		end
 		if client:supports_method("textDocument/references") then
-			map("gr", telescope.lsp_references, "Go to References")
+			map("grr", telescope.lsp_references, "Go to References")
 		end
 	end,
 })

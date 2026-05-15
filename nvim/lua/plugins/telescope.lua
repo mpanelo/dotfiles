@@ -14,13 +14,14 @@ return {
 	keys = {
 		-- { "<leader>/", "<cmd>Telescope live_grep<cr>", desc = "Grep" },
 		{ "<leader>/", "<cmd>Telescope live_grep_args<cr>", desc = "Grep" },
+		-- Buffers
+		{
+			"<leader>bb",
+			":Telescope buffers sort_mru=true sort_lastused=true<CR>",
+			desc = "List Buffers",
+		},
 		-- Find
 		{ "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find File" },
-		{
-			"<leader>fb",
-			"<cmd>Telescope buffers sort_mru=true sort_lastused=true<cr>",
-			desc = "Buffers",
-		},
 		{
 			"<leader>fg",
 			"<cmd>Telescope git_files<cr>",
@@ -54,6 +55,13 @@ return {
 		local telescope = require("telescope")
 
 		telescope.setup({
+			pickers = {
+				buffers = {
+					mappings = {
+						n = { ["d"] = require("telescope.actions").delete_buffer },
+					},
+				},
+			},
 			defaults = {
 				layout_strategy = "flex",
 				layout_config = {
