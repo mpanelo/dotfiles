@@ -95,4 +95,4 @@ vim.opt.splitbelow = true
 vim.opt.cursorline = true
 
 -- Visual guide for line length
-vim.opt.colorcolumn = "120"
+--vim.opt.colorcolumn = "120"
