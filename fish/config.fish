@@ -11,17 +11,15 @@ set -gx fish_greeting
 abbr lg "lazygit"
 #abbr tn "tmux new -s"
 #abbr fs "tmux ls -F '#{session_name}' | fzf-tmux -p | xargs tmux switch -t"
+abbr cat "bat"
 
 starship init fish | source
 zoxide init fish | source
 
-# This command will install keybindings for fishshell, but we do not want
-# fzf-history-widget and fzf-file-widget because fzf.fish provides
-# a better history and file search interface.
+# fzf.fish provides better history (ctrl-r) and file search (ctrl-t) than fzf's
+# defaults. Setting these to empty tells fzf not to bind those keys.
+set -x FZF_CTRL_R_COMMAND ""
+set -x FZF_CTRL_T_COMMAND ""
 fzf --fish | source
-bind --erase -- \ct
-bind --erase --mode insert -- \ct
-bind --erase -- \cr
-bind --erase --mode insert -- \cr
 
 direnv hook fish | source
