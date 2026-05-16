@@ -1,7 +1,7 @@
 # Homebrew
 eval (/opt/homebrew/bin/brew shellenv)
 
-fish_add_path "$HOME/.cargo/bin/", "$HOME/go/bin"
+fish_add_path "$HOME/.cargo/bin/" "$HOME/go/bin" "$HOME/bin"
 #fish_add_path "/Applications/Alacritty.app/Contents/MacOS"
 
 set -gx EDITOR nvim
