@@ -6,8 +6,8 @@ return {
 			"nvim-lua/plenary.nvim",
 			"nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
 			"MunifTanjim/nui.nvim",
-			-- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
 		},
+		lazy = false, -- neo-tree will lazily load itself
 		opts = {
 			close_if_last_window = true, -- Close Neo-tree if it is the last window left in the tab
 			filesystem = {

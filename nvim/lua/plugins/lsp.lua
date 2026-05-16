@@ -7,10 +7,14 @@ return {
 		build = ":MasonUpdate",
 		opts = {
 			ensure_installed = {
-				"stylua",
-				"shfmt",
-				"goimports",
-				"gofumpt",
+				-- "stylua",
+				-- "shfmt",
+				--"goimports",
+				-- "gofumpt",
+				"rust-analyzer",
+				"codelldb",
+				"gopls",
+				"lua-language-server",
 			},
 		},
 	},
