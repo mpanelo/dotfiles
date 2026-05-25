@@ -96,3 +96,5 @@ vim.opt.cursorline = true
 
 -- Visual guide for line length
 --vim.opt.colorcolumn = "120"
+
+vim.cmd.colorscheme("catppuccin-nvim")
