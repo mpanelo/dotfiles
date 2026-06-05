@@ -2,10 +2,9 @@ return {
 	"stevearc/conform.nvim",
 	opts = {
 		formatters_by_ft = {
-			lua = { "stylua" },
 			-- Conform will run multiple formatters sequentially
-			python = { "isort", "black" },
-			-- Use a sub-list to run only the first available formatter
+			lua = { "stylua" },
+			python = { "black" },
 			javascript = { "prettierd", "prettier", stop_after_first = true },
 			typescript = { "prettierd", "prettier", stop_after_first = true },
 			javascriptreact = {
