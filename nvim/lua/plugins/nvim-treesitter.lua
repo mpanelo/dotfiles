@@ -3,12 +3,12 @@ return {
 		"nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
 		lazy = false,
-		main = "nvim-treesitter.configs",
-		opts = {
-			ensure_installed = {
+		config = function()
+			require("nvim-treesitter").install({
 				"lua",
 				"luadoc",
 				"markdown",
+				"markdown_inline",
 				"vim",
 				"vimdoc",
 				"query",
@@ -25,25 +25,24 @@ return {
 				"yaml",
 				"toml",
 				"groovy",
-			},
-			-- Install parsers synchronously (only applied to `ensure_installed`)
-			sync_install = false,
-
-			-- Recommendation: set to false if you don't have `tree-sitter` CLI installed locally
-			auto_install = false,
-
-			highlight = {
-				enable = true,
-				-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-				-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-				-- Using this option may slow down your editor, and you may see some duplicate highlights.
-				-- Instead of true it can also be a list of languages
-				additional_vim_regex_highlighting = false,
-			},
-
-			-- Indentation based on treesitter for the = operator. NOTE: This is an experimental feature.
-			-- indent = { enable = true },
-		},
+			})
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = {
+					"go", "gomod", "gowork", "gosum",
+					"python",
+					"rust",
+					"javascript", "typescript",
+					"json",
+					"yaml", "toml",
+					"groovy",
+					"comment",
+					"vim", "vimdoc",
+				},
+				callback = function()
+					vim.treesitter.start()
+				end,
+			})
+		end,
 	},
 	{ "nvim-treesitter/nvim-treesitter-textobjects" },
 }

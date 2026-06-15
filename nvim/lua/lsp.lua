@@ -13,10 +13,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			)
 		end
 
-		-- Wire mini.completion's LSP completefunc for *this buffer*.
-		-- (You can use 'completefunc' instead if you prefer.)
-		vim.bo[args.buf].omnifunc = "v:lua.MiniCompletion.completefunc_lsp"
-
 		if client:supports_method("textDocument/implementation") then
 			map("gri", telescope.lsp_implementations, "Go to Implementation")
 		end
@@ -28,13 +24,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		end
 	end,
 })
-
--- Advertise to servers that Neovim now supports certain set of completion and
--- signature features through 'mini.completion'.
-vim.lsp.config(
-	"*",
-	{ capabilities = require("mini.completion").get_lsp_capabilities() }
-)
 
 -- Taken from https://github.com/neovim/nvim-lspconfig/blob/master/lsp/lua_ls.lua
 vim.lsp.config("lua_ls", {
