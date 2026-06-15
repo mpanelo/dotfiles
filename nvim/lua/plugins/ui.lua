@@ -33,7 +33,11 @@ return {
 							key = "f",
 						},
 						{
-							action = "Telescope oldfiles cwd_only=true",
+							action = function()
+								require("telescope.builtin").oldfiles({
+									cwd_only = true,
+								})
+							end,
 							desc = " Find Recent",
 							icon = "󰋚 ",
 							key = "r",
@@ -51,5 +55,13 @@ return {
 			}
 			return opts
 		end,
+	},
+	{
+		"MeanderingProgrammer/render-markdown.nvim",
+		dependencies = {
+			"nvim-treesitter/nvim-treesitter",
+			"nvim-mini/mini.icons",
+		},
+		opts = {},
 	},
 }
