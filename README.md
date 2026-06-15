@@ -8,8 +8,6 @@ I've sorted the list using a mix of priority and complexity.
 
 - [ ] How should I logically organize key bindings from different plugins? Currently, there is a lot of mappings under `g`.
 
-- [ ] Add a key map to stop/stop all snippet sessions
-
 - [ ] Enable / learn the undotree
 
 - [ ] Add manual which keys for mini.ai
@@ -19,5 +17,3 @@ I've sorted the list using a mix of priority and complexity.
 - [ ] A script that handles setup on a new machine
 
 - [ ] Check if there is a bug between mini pairs and mini snippets e.g. t.Run( in golang
-
-- [ ] Temporarily disable mini auto pair to see if it's beneficial for me
