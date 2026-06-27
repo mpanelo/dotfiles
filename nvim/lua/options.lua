@@ -1,4 +1,4 @@
--- -- Built-in completion
+-- Built-in completion
 vim.opt.complete = ".,w,b,kspell" -- Use less sources
 vim.opt.completeopt = "menuone,noselect,fuzzy,nosort" -- Use custom behavior
 
@@ -85,7 +85,7 @@ vim.opt.signcolumn = "yes"
 vim.opt.termguicolors = true
 
 -- Keep N lines visible above/below cursor while scrolling
-vim.opt.scrolloff = 8
+vim.opt.scrolloff = 10
 
 -- Open splits in the more intuitive direction
 vim.opt.splitright = true
@@ -93,6 +93,14 @@ vim.opt.splitbelow = true
 
 -- Highlight the line the cursor is on
 vim.opt.cursorline = true
+
+-- Useful to see the difference between tabs and spaces and for trailing blanks
+-- Further changed by the 'listchars' option.
+vim.o.list = true
+vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+
+-- Execute {command}, and use a dialog when an operation has to be confirmed
+vim.o.confirm = true
 
 -- Visual guide for line length
 --vim.opt.colorcolumn = "120"

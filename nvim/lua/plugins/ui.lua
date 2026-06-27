@@ -27,7 +27,9 @@ return {
 							-- group = "@property",
 						},
 						{
-							action = "Telescope find_files",
+							action = function()
+								require("telescope.builtin").find_files()
+							end,
 							desc = " Find File",
 							icon = "󰍉 ",
 							key = "f",
