@@ -4,7 +4,7 @@ return {
 		formatters_by_ft = {
 			-- Conform will run multiple formatters sequentially
 			lua = { "stylua" },
-			python = { "black" },
+			python = { "ruff_organize_imports", "ruff_format" },
 			javascript = { "prettierd", "prettier", stop_after_first = true },
 			typescript = { "prettierd", "prettier", stop_after_first = true },
 			javascriptreact = {
