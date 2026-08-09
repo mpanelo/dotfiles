@@ -17,6 +17,26 @@ key = "Slash"
 mods = "Control"
 
 [[keyboard.bindings]]
+chars = "\u0002\u001B[D"  # C-b Left
+key = "H"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[B"  # C-b Down
+key = "J"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[A"  # C-b Up
+key = "K"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[C"  # C-b Right
+key = "L"
+mods = "Command"
+
+[[keyboard.bindings]]
 chars = "\u00021"
 key = "Key1"
 mods = "Command"

@@ -1,3 +1,8 @@
+# alacritty
+
+Rectangle selection: `C-Shift` then use the mouse to select text.
+Toggle vi mode: `C-Shift-Space` then `C-v` to do a block selection.
+
 # tmux
 
 ## Rename Session

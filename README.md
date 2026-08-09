@@ -2,6 +2,11 @@
 
 [Cheatsheet](https://github.com/mpanelo/dotfiles/blob/main/cheatsheet.md) - Useful commands or keybindings I don't use often.
 
+## Interesting tools to possibly include in my dev setup
+
+- [tmux-snaglord](https://github.com/raine/tmux-snaglord)
+- [tmux-logging](https://github.com/tmux-plugins/tmux-logging)
+
 ## Enhancements / TODOs / I Want This
 
 I've sorted the list using a mix of priority and complexity.
