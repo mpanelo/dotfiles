@@ -106,10 +106,3 @@ vim.o.confirm = true
 --vim.opt.colorcolumn = "120"
 
 vim.cmd.colorscheme("catppuccin-nvim")
-
--- TODO: move autocmds to another file
-vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-	callback = function()
-		require("lint").try_lint()
-	end,
-})

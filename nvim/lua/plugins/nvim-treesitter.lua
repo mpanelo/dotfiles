@@ -28,15 +28,21 @@ return {
 			})
 			vim.api.nvim_create_autocmd("FileType", {
 				pattern = {
-					"go", "gomod", "gowork", "gosum",
+					"go",
+					"gomod",
+					"gowork",
+					"gosum",
 					"python",
 					"rust",
-					"javascript", "typescript",
+					"javascript",
+					"typescript",
 					"json",
-					"yaml", "toml",
+					"yaml",
+					"toml",
 					"groovy",
 					"comment",
-					"vim", "vimdoc",
+					"vim",
+					"vimdoc",
 				},
 				callback = function()
 					vim.treesitter.start()
@@ -44,5 +50,4 @@ return {
 			})
 		end,
 	},
-	{ "nvim-treesitter/nvim-treesitter-textobjects" },
 }
