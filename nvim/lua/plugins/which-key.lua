@@ -14,6 +14,7 @@ return {
 				},
 				{ "<leader>f", group = "File/Find" },
 				{ "<leader>g", group = "Git" },
+				{ "<leader>gd", group = "Diffview" },
 				{ "<leader>gh", group = "Hunks" },
 				{ "<leader>o", group = "Open" },
 				{ "<leader>s", group = "Search" },
