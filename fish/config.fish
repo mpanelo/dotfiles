@@ -8,6 +8,7 @@ set -gx EDITOR nvim
 set -gx VISUAL nvim
 set -gx fish_greeting
 set -gx LESS -R
+set -gx SHELL (command -v fish)
 
 abbr nvd "nvim -c 'DiffviewOpen'"
 abbr lg "lazygit"
