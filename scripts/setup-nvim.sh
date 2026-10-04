@@ -11,6 +11,5 @@ echo "Install Go Formatter"
 go install mvdan.cc/gofumpt@latest
 go install golang.org/x/tools/cmd/goimports@latest
 
-echo "Install prettierd & eslint_d"
-npm install -g @fsouza/prettierd
+echo "Install eslint_d"
 npm install -g eslint_d
