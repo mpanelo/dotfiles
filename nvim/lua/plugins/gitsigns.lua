@@ -52,12 +52,7 @@ return {
 				"Reset Hunk"
 			)
 			map("n", "<leader>ghS", gitsigns.stage_buffer, "Stage Buffer")
-			map(
-				"n",
-				"<leader>ghu",
-				gitsigns.undo_stage_hunk,
-				"Undo Stage Hunk"
-			)
+			map("n", "<leader>ghu", gitsigns.undo_stage_hunk, "Undo Stage Hunk")
 			map("n", "<leader>ghR", gitsigns.reset_buffer, "Reset Buffer")
 			map(
 				"n",
