@@ -7,6 +7,30 @@ REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 NVIM_CONFIG_SOURCE="${REPO_ROOT}/nvim"
 CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 NVIM_CONFIG_TARGET="${CONFIG_HOME}/nvim"
+SYNC_EXISTING=0
+
+usage() {
+	cat <<'EOF'
+Usage: scripts/setup-nvim.sh [--sync]
+
+Without --sync, an existing Neovim config is left untouched and causes setup to stop.
+With --sync, an existing config is moved to a timestamped backup before this repo's
+Neovim config is linked in its place. Plugin and parser setup then runs as usual.
+EOF
+}
+
+case "${1:-}" in
+	"") ;;
+	--sync) SYNC_EXISTING=1 ;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*)
+		usage >&2
+		exit 2
+		;;
+esac
 
 log() {
 	printf '\n==> %s\n' "$*"
@@ -62,7 +86,20 @@ link_config() {
 	fi
 
 	if [[ -e "$NVIM_CONFIG_TARGET" || -L "$NVIM_CONFIG_TARGET" ]]; then
-		fail "${NVIM_CONFIG_TARGET} already exists and is not this repository's config. Move it aside, then rerun."
+		if ((SYNC_EXISTING == 0)); then
+			fail "${NVIM_CONFIG_TARGET} already exists and is not this repository's config. Rerun with --sync to preserve it as a backup and link this repo's config."
+		fi
+
+		local backup_target
+		backup_target="${NVIM_CONFIG_TARGET}.backup.$(date '+%Y%m%d%H%M%S')"
+		local suffix=1
+		while [[ -e "$backup_target" || -L "$backup_target" ]]; do
+			backup_target="${NVIM_CONFIG_TARGET}.backup.$(date '+%Y%m%d%H%M%S').${suffix}"
+			suffix=$((suffix + 1))
+		done
+
+		log "Preserving existing Neovim config at ${backup_target}"
+		mv "$NVIM_CONFIG_TARGET" "$backup_target"
 	fi
 
 	log "Linking Neovim config"
