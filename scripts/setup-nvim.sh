@@ -42,6 +42,8 @@ config="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
 log "Installing Neovim and plugin prerequisites"
 brew install neovim git tree-sitter stylua
+# Blink V2 needs Cargo to build its native fuzzy matcher.
+command -v cargo >/dev/null 2>&1 || brew install rust
 
 version="$(nvim --version)"
 [[ "$version" =~ ^NVIM\ v([0-9]+)\.([0-9]+) ]] || fail "Could not determine Neovim version."
@@ -67,8 +69,9 @@ fi
 log "Installing plugins"
 nvim --headless -c 'Lazy! sync' -c 'qa!'
 
-log "Installing Tree-sitter parsers"
+log "Building Blink's fuzzy matcher and installing Tree-sitter parsers"
 nvim --headless \
+	-c 'lua require("blink.cmp").build():pwait()' \
 	-c 'lua require("nvim-treesitter").install(require("config.treesitter")):wait(300000)' \
 	-c 'qa!'
 

@@ -8,10 +8,13 @@ unique timestamped backup directory first.
 
 The setup script supports macOS only and requires Homebrew and Xcode Command
 Line Tools. It installs Neovim, Git, the Tree-sitter CLI, and StyLua with Homebrew.
+If Cargo is missing, it also installs Rust to build Blink V2's native fuzzy matcher.
+Blink builds automatically on plugin installation and updates; setup also ensures
+the matcher is built when rerun with an existing plugin installation.
 Xcode Command Line Tools provide the C compiler and make used for parsers and
 Telescope's native extension.
 
-Go, Python, Node.js, and Rust toolchains are not installed by this script.
+Go, Python, and Node.js toolchains are not installed by this script.
 Install language toolchains, language servers, and other formatters separately
 for the languages you use. Setup reports configured language tools missing from
 PATH.

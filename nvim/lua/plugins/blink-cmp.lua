@@ -6,6 +6,9 @@ return {
 			-- optional: provides snippets for the snippet source
 			"rafamadriz/friendly-snippets",
 		},
+		build = function()
+			require("blink.cmp").build():pwait()
+		end,
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
 		opts = {
@@ -30,7 +33,7 @@ return {
 			-- elsewhere in your config, without redefining it, due to `opts_extend`
 			sources = { default = { "lsp", "path", "snippets", "buffer" } },
 
-			-- Prefer the prebuilt Rust matcher, with a Lua fallback on unsupported systems.
+			-- Prefer the compiled Rust matcher, with a Lua fallback if unavailable.
 			fuzzy = { implementation = "prefer_rust_with_warning" },
 		},
 	},
