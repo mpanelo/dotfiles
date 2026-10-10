@@ -6,12 +6,6 @@ return {
 			-- optional: provides snippets for the snippet source
 			"rafamadriz/friendly-snippets",
 		},
-		build = function()
-			-- build the fuzzy matcher, optionally add a timeout to `pwait(timeout_ms)`
-			-- you can use `gb` in `:Lazy` to rebuild the plugin as needed
-			require("blink.cmp").build():pwait()
-		end,
-
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
 		opts = {
@@ -36,10 +30,8 @@ return {
 			-- elsewhere in your config, without redefining it, due to `opts_extend`
 			sources = { default = { "lsp", "path", "snippets", "buffer" } },
 
-			-- (Default) Rust fuzzy matcher for typo resistance and significantly better performance
-			-- You may use a lua implementation instead by using `implementation = "lua"`
-			-- See the fuzzy documentation for more information
-			fuzzy = { implementation = "rust" },
+			-- Prefer the prebuilt Rust matcher, with a Lua fallback on unsupported systems.
+			fuzzy = { implementation = "prefer_rust_with_warning" },
 		},
 	},
 }
