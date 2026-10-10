@@ -1,5 +1,21 @@
 # Neovim notes
 
+## Setup dependencies
+
+Run `./scripts/setup-nvim.sh` to install Neovim, link this config, and install
+plugins and Tree-sitter parsers. Use `--sync` to move an existing config into a
+unique timestamped backup directory first.
+
+The setup script supports macOS only and requires Homebrew and Xcode Command
+Line Tools. It installs Neovim, Git, the Tree-sitter CLI, and StyLua with Homebrew.
+Xcode Command Line Tools provide the C compiler and make used for parsers and
+Telescope's native extension.
+
+Go, Python, Node.js, and Rust toolchains are not installed by this script.
+Install language toolchains, language servers, and other formatters separately
+for the languages you use. Setup reports configured language tools missing from
+PATH.
+
 ## Checking gopls
 
 Open a Go file, then run these commands:

@@ -6,7 +6,6 @@ return {
 			lua = { "stylua" },
 			python = { "ruff_organize_imports", "ruff_format" },
 			go = { "goimports", "gofumpt" },
-			nix = { "alejandra" },
 			bash = { "shfmt" },
 		},
 		format_on_save = function(bufnr)
