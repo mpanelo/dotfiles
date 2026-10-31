@@ -1,0 +1,3 @@
+{{- $versions := include (joinPath .chezmoi.workingTree "manifests/versions.json") | fromJson -}}
+# A default baseline with Go-native project toolchain selection.
+set -gx GOTOOLCHAIN go{{ $versions.go }}+auto

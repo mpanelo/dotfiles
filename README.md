@@ -1,24 +1,175 @@
 # Mauricio's dotfiles
 
-[Cheatsheet](https://github.com/mpanelo/dotfiles/blob/main/cheatsheet.md) - Useful commands or keybindings I don't use often.
+A macOS development environment managed with chezmoi and Homebrew,
+primarily for Apple Silicon. Fish, Alacritty, tmux, Neovim, and Starship
+provide the terminal workflow; Go and Rust are the development
+toolchains.
 
-## Interesting tools to possibly include in my dev setup
+The bootstrap and configuration have passed isolated tests on the
+reference MacBook. Full provisioning on clean macOS, live
+language-server attachment, and visual acceptance checks remain to be
+completed.
 
-- [tmux-snaglord](https://github.com/raine/tmux-snaglord)
-- [tmux-logging](https://github.com/tmux-plugins/tmux-logging)
+## Set up a new Mac
 
-## Enhancements / TODOs / I Want This
+Use a normal macOS account with internet access. Homebrew installation
+may request administrator authentication; do not run bootstrap with
+sudo.
 
-I've sorted the list using a mix of priority and complexity.
+Choose a reviewed, published commit and run this in Bash or zsh:
 
-- [ ] How should I logically organize key bindings from different plugins? Currently, there is a lot of mappings under `g`.
+```sh
+revision=REVIEWED_40_CHARACTER_COMMIT
+base=https://raw.githubusercontent.com/mpanelo/dotfiles
+/bin/bash -c "$(curl -fsSL "$base/$revision/install.sh")" -- "$revision"
+```
 
-- [ ] Enable / learn the undotree
+Replace the placeholder with the full commit hash. The launcher checks
+out that revision under `~/.local/share/chezmoi`, installs Homebrew and
+chezmoi when needed, and runs the provisioning stages. If Command Line
+Tools need a system dialog, finish it and rerun the same command.
 
-- [ ] Add manual which keys for mini.ai
+From an existing checkout, preview the stages and check for conflicts:
 
-- [ ] Migrate to vim.pack
+```sh
+./bootstrap.sh --plan
+./bootstrap.sh --check
+```
 
-- [ ] A script that handles setup on a new machine
+To install the core tools and apply the configuration:
 
-- [ ] Check if there is a bug between mini pairs and mini snippets e.g. t.Run( in golang
+```sh
+./bootstrap.sh
+```
+
+Open Alacritty after provisioning to start Fish with the managed PATH,
+prompt, and keybindings. Git identity, authentication, application
+logins, and any system login-shell change remain manual choices.
+
+## Existing Macs
+
+Preflight refuses unexpected files, symlinks, local edits, and unmanaged
+Alacritty or font installations. Follow the [recovery and migration
+guide](docs/recovery.md) to compare and back up existing configuration
+before a handoff.
+
+The original `fish/`, `alacritty/`, `tmux/`, and `nvim/` directories
+remain intact during migration. Do not rename or delete them while live
+links point into them. The old component installers and
+`macos/brew/Brewfile` are legacy paths; the new bootstrap uses the root
+`Brewfile` and `home/`.
+
+## Core environment
+
+| Area | Tools |
+| --- | --- |
+| Provisioning | chezmoi, Homebrew |
+| Terminal | Fish, Alacritty, tmux, Starship |
+| Font | JetBrainsMono Nerd Font, managed as a Homebrew cask |
+| Search and navigation | fd, ripgrep, fzf, zoxide |
+| Unix commands | bat, eza, HTTPie, tlrc, jq, direnv |
+| Git workflow | Git, git-delta, lazygit, ssh-copy-id, workmux |
+| Go | Go, gopls, goimports, gofumpt |
+| Rust | rustup, Cargo, rust-analyzer, rustfmt, Clippy, rust-src |
+| Lua editing | lua-language-server, StyLua |
+| Python editing | BasedPyright, Ruff, isolated through uv |
+| Editor support | Tree-sitter CLI, LuaRocks, pinned plugins |
+| Node manager | fnm, without an installed Node version |
+
+See the [Brewfile](Brewfile) for the package list and [version
+manifest](manifests/versions.json) for pinned tool versions. Language
+servers and formatters are installed directly by the bootstrap, outside
+Mason.
+
+BasedPyright's uv environment includes its private Node runtime. It does
+not provide general-purpose Node or npm on PATH. fnm is available for
+future on-demand use, without automatic Node installation. No frontend
+toolchain is provisioned; existing JavaScript/TypeScript syntax viewing
+in Neovim is retained. shfmt and tmux-sessionx are excluded from the new
+managed configuration.
+
+## Repository layout
+
+```text
+.chezmoiroot          Selects home/ as the chezmoi source state
+Brewfile             Core Homebrew formulae, casks, and taps
+bootstrap.sh         Provisioning entry point for a local checkout
+install.sh           Standalone launcher for a reviewed commit
+home/                Managed configuration and ordered chezmoi scripts
+manifests/           Tool versions, plugin pins, and file inventory
+scripts/bootstrap/   Preflight, installation, backup, and verification
+tests/               Offline checks and isolated application tests
+docs/                Setup, design decisions, and recovery guidance
+```
+
+chezmoi deploys regular files into the home directory. Plugin checkouts,
+caches, histories, Fish universal variables, session snapshots, and
+credentials stay outside the managed source.
+
+## Maintain and sync changes
+
+Edit a managed configuration, review the diff, and apply it:
+
+```sh
+chezmoi edit ~/.config/fish/config.fish
+chezmoi diff
+chezmoi apply
+```
+
+A full apply also reconciles declared packages, toolchains, and plugins.
+For an intentional live edit, use `chezmoi re-add` on that specific file
+after reviewing it. When adding a managed file, update
+`manifests/config-files.tsv` so conflict detection and backups cover it.
+
+Commit and push reviewed source changes. On another Mac, fetch and
+review the intended revision before advancing its source checkout and
+applying. The standalone launcher starts at a detached commit; create a
+branch before making source commits. Automatic commits and pushes are
+disabled.
+
+Routine reconciliation restores pinned tool/plugin versions and uses
+Homebrew's `--no-upgrade` mode. Deliberate upgrades are separate changes
+to validate on one Mac before propagating to another. Homebrew remains a
+rolling package manager; a Brewfile does not lock application versions.
+Bootstrap does not automatically uninstall packages, clean up unrelated
+files, or change macOS security settings.
+
+## Test without changing live configuration
+
+Run the offline safety and source checks:
+
+```sh
+python3 tests/test_bootstrap.py
+```
+
+Run real chezmoi deployment checks in temporary directories:
+
+```sh
+tests/run-isolated.sh --download-chezmoi
+```
+
+Add `--smoke` to test existing Fish, tmux, and Neovim binaries with
+copies of their cached, pinned plugins. This requires matching plugin
+caches:
+
+```sh
+tests/run-isolated.sh --download-chezmoi --smoke
+```
+
+The download option obtains a pinned, checksum-verified test executable
+and removes it afterward. Use `--chezmoi /path/to/chezmoi` instead to
+avoid downloading. The harness isolates source, HOME, destination,
+cache, and state; provisioning hooks are disabled and installers are
+blocked. tmux runs on a private socket with session restore/save
+disabled.
+
+These checks cover configuration deployment and application behavior.
+Full package installation, LSP attachment, fonts, clipboard integration,
+and session persistence still need acceptance testing on clean macOS.
+
+## Further reading
+
+- [Bootstrap and maintenance](docs/bootstrap.md)
+- [Conflict handling and recovery](docs/recovery.md)
+- [Migration plan](docs/macos-development-environment-plan.md)
+- [Keybindings and command notes](cheatsheet.md)

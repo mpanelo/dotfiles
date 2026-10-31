@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+{{ if eq .chezmoi.destDir .chezmoi.homeDir -}}
+# Provisioning is skipped for isolated --destination previews.
+exec /bin/bash {{ joinPath .chezmoi.workingTree "scripts/bootstrap/reconcile.sh" | quote }} toolchains
+{{ else -}}
+exit 0
+{{ end -}}
