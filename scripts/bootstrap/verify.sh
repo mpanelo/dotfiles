@@ -51,7 +51,7 @@ actual=$("$UV_TOOL_DIR/basedpyright/bin/python" -I -c 'import importlib.metadata
 PATH=/usr/bin:/bin "$HOME/.local/bin/basedpyright" --version
 
 log 'Checking package declarations, font/application presence and shell syntax'
-"$BREW_PREFIX/bin/brew" bundle check --file="$REPO_ROOT/Brewfile"
+"$BREW_PREFIX/bin/brew" bundle check --no-upgrade --file="$REPO_ROOT/Brewfile"
 app=$(alacritty_app)
 [[ -d "$app" ]] || die 'Alacritty application is missing.'
 if [[ "$app" != /Applications/Alacritty.app ]]; then
