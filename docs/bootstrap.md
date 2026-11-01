@@ -14,6 +14,11 @@ file contents, symlinks/runtime directories, a shadowing `~/.tmux.conf`, and
 unmanaged Alacritty or JetBrains Nerd Font installations. The output includes
 file counts and the detected Command Line Tools, Homebrew and chezmoi state.
 
+Normal provisioning prints one initial conflict-check result and progress for
+each stage. The chezmoi hook and individual stages repeat the safety checks
+silently so they remain safe when run independently. Conflicts and errors are
+always reported; use `--check` for the full read-only report.
+
 Missing prerequisites are informational because bootstrap will install them.
 On a clean Mac, a pass normally means there are no existing files to conflict
 with installation. It does not mean the environment has been provisioned or

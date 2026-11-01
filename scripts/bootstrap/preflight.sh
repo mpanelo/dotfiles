@@ -7,17 +7,22 @@ source "$REPO_ROOT/scripts/bootstrap/alacritty.sh"
 
 destination=$HOME
 files_only=0
+quiet=0
 while (($#)); do
     case $1 in
         --destination) (($# >= 2)) || die '--destination needs an absolute directory.'; destination=$2; shift 2 ;;
         --files-only) files_only=1; shift ;;
+        --quiet) quiet=1; shift ;;
         *) die "Unknown preflight argument: $1" ;;
     esac
 done
 [[ -d "$destination" && "$destination" == /* ]] || die 'Destination must be an existing absolute directory.'
-log 'Checking for installation conflicts (no installation or configuration changes)'
-printf 'Destination: %s\n' "$destination"
-report() { printf '  %s  %s\n' "$1" "$2"; }
+if ((!quiet)); then
+    log 'Checking for installation conflicts (no installation or configuration changes)'
+    printf 'Destination: %s\n' "$destination"
+fi
+# Provisioning stages still run every guard, but only report conflicts/errors.
+report() { if ((!quiet)); then printf '  %s  %s\n' "$1" "$2"; fi; }
 if ((files_only)); then
     report INFO 'Destination-only mode: platform, app/font and prerequisite checks are skipped.'
 else
@@ -145,9 +150,13 @@ if ((!files_only)); then
     fi
 fi
 
-printf '\nNot checked: network access, administrator authentication, tool versions,\n'
-printf 'language-server behavior, or terminal/font rendering.\n'
+if ((!quiet)); then
+    printf '\nNot checked: network access, administrator authentication, tool versions,\n'
+    printf 'language-server behavior, or terminal/font rendering.\n'
+fi
 ((conflicts == 0)) || die "Installation blocked by $conflicts conflict(s). No installation or configuration changes were made. See docs/recovery.md."
-log 'Installation conflict check passed: no blocking conflicts were found.'
-printf 'Missing tools are expected on a clean Mac; this is not a completed provisioning check.\n'
-printf 'No software was installed and no destination configuration files were changed.\n'
+if ((!quiet)); then
+    log 'Installation conflict check passed: no blocking conflicts were found.'
+    printf 'Missing tools are expected on a clean Mac; this is not a completed provisioning check.\n'
+    printf 'No software was installed and no destination configuration files were changed.\n'
+fi

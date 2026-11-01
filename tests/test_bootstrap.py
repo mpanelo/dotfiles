@@ -48,8 +48,8 @@ class SafetyTests(unittest.TestCase):
         return subprocess.run(["/bin/bash", str(SCRIPTS / name), *args],
                               env=self.env, text=True, capture_output=True)
 
-    def preflight(self):
-        return self.run_script("preflight.sh", "--files-only", "--destination", str(self.home))
+    def preflight(self, *args):
+        return self.run_script("preflight.sh", "--files-only", "--destination", str(self.home), *args)
 
     def test_empty_destination_is_read_only_and_repeatable(self):
         for _ in range(2):
@@ -61,6 +61,13 @@ class SafetyTests(unittest.TestCase):
             self.assertIn("platform, app/font and prerequisite checks are skipped", result.stdout)
             self.assertIn("not a completed provisioning check", result.stdout)
             self.assertIn("Not checked: network access", result.stdout)
+
+    def test_quiet_preflight_is_silent_and_read_only_on_success(self):
+        result = self.preflight("--quiet")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(list(self.home.iterdir()), [])
 
     def test_bootstrap_help_and_removed_plan_do_not_provision(self):
         for arg, expected_code in (("--help", 0), ("--plan", 1)):
@@ -79,13 +86,15 @@ class SafetyTests(unittest.TestCase):
         target = self.home / ".config/fish/config.fish"
         target.parent.mkdir(parents=True)
         target.write_text("# local customization\n")
-        result = self.preflight()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("CONFLICT", result.stderr)
-        self.assertIn("Installation blocked by 1 conflict(s)", result.stderr)
-        self.assertNotIn("check passed", result.stdout)
-        self.assertNotIn("# local customization", result.stdout + result.stderr)
-        self.assertEqual(target.read_text(), "# local customization\n")
+        for args in ((), ("--quiet",)):
+            with self.subTest(args=args):
+                result = self.preflight(*args)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("CONFLICT: .config/fish/config.fish differs", result.stderr)
+                self.assertIn("Installation blocked by 1 conflict(s)", result.stderr)
+                self.assertNotIn("check passed", result.stdout)
+                self.assertNotIn("# local customization", result.stdout + result.stderr)
+                self.assertEqual(target.read_text(), "# local customization\n")
 
     def test_identical_regular_file_can_be_adopted(self):
         target = self.home / ".config/fish/config.fish"

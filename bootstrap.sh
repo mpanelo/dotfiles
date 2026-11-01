@@ -23,7 +23,8 @@ esac
 
 # This check is intentionally before every installer and before chezmoi init.
 bootstrap_path
-/bin/bash "$REPO_ROOT/scripts/bootstrap/preflight.sh"
+/bin/bash "$REPO_ROOT/scripts/bootstrap/preflight.sh" --quiet
+log 'Installation conflict check passed.'
 [[ $EUID != 0 ]] || die 'Run as your normal user, not root.'
 begin_bootstrap_run
 if ! xcode-select -p >/dev/null 2>&1; then

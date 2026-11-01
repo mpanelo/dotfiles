@@ -13,7 +13,7 @@ source "$REPO_ROOT/scripts/bootstrap/tree-sitter.sh"
 [[ ${DOTFILES_ISOLATED_TEST:-0} != 1 ]] || die 'Provisioning is disabled in the isolated test harness.'
 bootstrap_path
 [[ ${1:-} == packages ]] || require_command jq
-/bin/bash "$REPO_ROOT/scripts/bootstrap/preflight.sh"
+/bin/bash "$REPO_ROOT/scripts/bootstrap/preflight.sh" --quiet
 begin_bootstrap_run
 
 install_packages() {

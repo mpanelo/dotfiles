@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 {{ if eq .chezmoi.destDir .chezmoi.homeDir -}}
-exec /bin/bash {{ joinPath .chezmoi.workingTree "scripts/bootstrap/preflight.sh" | quote }}
+exec /bin/bash {{ joinPath .chezmoi.workingTree "scripts/bootstrap/preflight.sh" | quote }} --quiet
 {{ else -}}
-exec /bin/bash {{ joinPath .chezmoi.workingTree "scripts/bootstrap/preflight.sh" | quote }} --files-only --destination {{ .chezmoi.destDir | quote }}
+exec /bin/bash {{ joinPath .chezmoi.workingTree "scripts/bootstrap/preflight.sh" | quote }} --files-only --destination {{ .chezmoi.destDir | quote }} --quiet
 {{ end -}}
