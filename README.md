@@ -107,6 +107,9 @@ toolchain is provisioned; existing JavaScript/TypeScript syntax viewing
 in Neovim is retained. shfmt and tmux-sessionx are excluded from the new
 managed configuration.
 
+The pinned Tree-sitter CLI comes from a checksum-verified official macOS
+release in `~/.local/bin`. It does not require a Cargo source build.
+
 ## Repository layout
 
 ```text

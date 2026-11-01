@@ -8,6 +8,8 @@ source "$REPO_ROOT/scripts/bootstrap/alacritty.sh"
 source "$REPO_ROOT/scripts/bootstrap/session.sh"
 # shellcheck source=scripts/bootstrap/login-shell.sh
 source "$REPO_ROOT/scripts/bootstrap/login-shell.sh"
+# shellcheck source=scripts/bootstrap/tree-sitter.sh
+source "$REPO_ROOT/scripts/bootstrap/tree-sitter.sh"
 [[ ${DOTFILES_ISOLATED_TEST:-0} != 1 ]] || die 'Provisioning is disabled in the isolated test harness.'
 bootstrap_path
 [[ ${1:-} == packages ]] || require_command jq
@@ -25,13 +27,13 @@ install_packages() {
 }
 
 install_toolchains() {
-    local go_pin rust_pin tree_pin tool module pin actual installer python_pin
+    local go_pin rust_pin tool module pin actual installer python_pin
     local nvim_version
     nvim_version=$(nvim --version)
     [[ "$nvim_version" =~ ^NVIM\ v([0-9]+)\.([0-9]+) ]] || die 'Could not determine the Neovim version.'
     ((BASH_REMATCH[1] > 0 || BASH_REMATCH[2] >= 12)) ||
         die 'This configuration needs Neovim 0.12 or newer; review an explicit Homebrew upgrade.'
-    go_pin=$(version go); rust_pin=$(version rust); tree_pin=$(version tree-sitter-cli)
+    go_pin=$(version go); rust_pin=$(version rust)
     python_pin=$(version python)
     export GOTOOLCHAIN="go$go_pin" GOBIN="$HOME/go/bin"
     log "Ensuring Go $go_pin and pinned Go tools"
@@ -66,10 +68,7 @@ install_toolchains() {
     if [[ $(rustup toolchain list | awk '/\(.*default/ {print $1}') != "$rust_pin-$(rustc +"$rust_pin" -vV | awk '/^host:/ {print $2}')" ]]; then
         rustup default "$rust_pin"
     fi
-    if [[ ! -x "$HOME/.cargo/bin/tree-sitter" ]] ||
-        [[ $("$HOME/.cargo/bin/tree-sitter" --version) != "tree-sitter $tree_pin"* ]]; then
-        cargo +"$rust_pin" install --root "$HOME/.cargo" --locked --version "$tree_pin" tree-sitter-cli
-    fi
+    install_tree_sitter
 
     log 'Ensuring uv-isolated BasedPyright/Node and Ruff (fnm installs no Node)'
     for tool in basedpyright ruff; do

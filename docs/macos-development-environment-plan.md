@@ -72,7 +72,7 @@ Supporting dependencies are also required to preserve the editor and shell:
 | Dependency | Purpose and ownership |
 | --- | --- |
 | Xcode Command Line Tools | System Git before Homebrew, C compiler, make, native parser/extension builds |
-| Tree-sitter CLI | Pin the known-compatible Cargo CLI initially; the Homebrew `tree-sitter` library alone is insufficient |
+| Tree-sitter CLI | Pinned official macOS binary with per-architecture archive checksums; the Homebrew `tree-sitter` library alone is insufficient |
 | LuaRocks | Retain existing lazy.nvim compatibility initially; reassess only after proving it is unused |
 | Fisher, Bass, fzf.fish | Retain existing Fish plugins; record revisions and install outside the source tree |
 | TPM and configured tmux plugins | Retain current plugins, including the Catppuccin fork; record revisions |

@@ -180,6 +180,24 @@ tools. `python-tools.constraints.txt` must match the corresponding JSON pins.
 These are initial reference-compatible versions, not a promise they are the
 latest releases; review updates explicitly before broad deployment.
 
+The Tree-sitter CLI uses the official macOS release binary for the pinned
+version, with separate Apple Silicon and Intel archive SHA-256 values in the
+version manifest. It installs into `~/.local/bin/tree-sitter`, independently of
+Cargo, so parser tooling does not depend on compiling QuickJS Rust bindings.
+The installer verifies the archive, native architecture and CLI version before
+installation, then records the executable hash in private local state. Unchanged
+retries skip downloads; unknown or modified executables are preserved. Any
+existing Cargo-installed CLI is left intact, with the managed local binary
+taking precedence on PATH. This is editor infrastructure, not a Node/npm
+installation or a change to the Rust toolchain strategy.
+
+If an older bootstrap fails compiling `rquickjs` during `tree-sitter-cli`
+installation, update the source checkout and rerun bootstrap. Keep the installed
+Go/Rust components and Cargo caches; an OS reset or broad cache deletion is not
+needed to resume. The final compiler error alone does not identify why the
+procedural-macro crate was unavailable. The release-binary installation avoids
+that build step while retaining the pinned CLI version and its native runtime.
+
 Homebrew installs fnm only. Bootstrap never calls `fnm install` and never installs
 general-purpose Node/npm. BasedPyright is installed through uv from wheels,
 including its private Node runtime. LSPs and formatters are independent of Mason.

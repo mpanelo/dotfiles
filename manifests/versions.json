@@ -7,5 +7,7 @@
   "basedpyright": "1.39.9",
   "nodejs-wheel-binaries": "24.16.0",
   "ruff": "0.16.2",
-  "tree-sitter-cli": "0.26.8"
+  "tree-sitter-cli": "0.26.8",
+  "tree-sitter-macos-arm64-sha256": "024e2cee34723524d62d41bde4d2b4af23c8bbe0236e116c79c0b37d9575889e",
+  "tree-sitter-macos-x64-sha256": "d0daa279054c1d1cedb08f5ca784b451ceb1f0e6b083b112d07317958ae77fe0"
 }

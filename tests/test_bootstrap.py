@@ -3,6 +3,7 @@
 Never invokes an installer or chezmoi apply. Use Python's standard library only.
 """
 import hashlib
+import gzip
 import json
 import os
 from pathlib import Path
@@ -199,6 +200,89 @@ class SafetyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("local changes", result.stderr)
         self.assertEqual((target / "plugin.conf").read_text(), "local customization\n")
+
+
+class TreeSitterTests(unittest.TestCase):
+    setUp = SafetyTests.setUp
+
+    def prepare_release(self, arch="arm64", reported_version="0.26.8"):
+        self.root = Path(self.tmp.name)
+        self.bin = self.root / "bin"
+        self.bin.mkdir()
+        self.archive = self.root / "release.gz"
+        self.archive.write_bytes(gzip.compress(f'#!/bin/sh\nprintf "tree-sitter {reported_version}\\n"\n'.encode()))
+        (self.root / "manifests").mkdir()
+        checksum = hashlib.sha256(self.archive.read_bytes()).hexdigest()
+        (self.root / "manifests/versions.json").write_text(json.dumps({
+            "tree-sitter-cli": "0.26.8", "tree-sitter-macos-arm64-sha256": checksum,
+            "tree-sitter-macos-x64-sha256": checksum}))
+        self.log = self.root / "downloads.log"
+        commands = {
+            "curl": 'printf "%s\\n" "$*" >> "$DOWNLOAD_LOG"\nwhile [ "$1" != "-o" ]; do shift; done\ncp "$FIXTURE_ARCHIVE" "$2"\n',
+            "lipo": 'exit 0\n',
+            "uname": f'printf "{arch}\\n"\n',
+        }
+        for name, body in commands.items():
+            path = self.bin / name
+            path.write_text("#!/bin/sh\nset -eu\n" + body)
+            path.chmod(0o755)
+        self.env.update(PATH=str(self.bin) + os.pathsep + self.env["PATH"],
+                        FIXTURE_ARCHIVE=str(self.archive), DOWNLOAD_LOG=str(self.log),
+                        TMPDIR=str(self.root))
+        self.target = self.home / ".local/bin/tree-sitter"
+
+    def install(self):
+        code = 'source "$1/lib.sh"; source "$1/tree-sitter.sh"; REPO_ROOT=$2; install_tree_sitter; tree_sitter_is_current'
+        return subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS), str(self.root)],
+                              env=self.env, text=True, capture_output=True)
+
+    def test_install_and_retry_reuse_verified_binary(self):
+        self.prepare_release()
+        for _ in range(2):
+            result = self.install()
+            self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(self.log.read_text().splitlines()), 1)
+        self.assertIn("tree-sitter-macos-arm64.gz", self.log.read_text())
+        self.assertEqual(subprocess.check_output([str(self.target), "--version"], text=True), "tree-sitter 0.26.8\n")
+        record = self.home / ".local/state/dotfiles/tree-sitter.release"
+        self.assertEqual(record.stat().st_mode & 0o777, 0o600)
+        self.assertFalse(list(self.root.glob("dotfiles-tree-sitter.*")))
+
+    def test_intel_selects_the_x64_release(self):
+        self.prepare_release(arch="x86_64")
+        result = self.install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("tree-sitter-macos-x64.gz", self.log.read_text())
+
+    def test_corrupt_archive_is_rejected_before_installation(self):
+        self.prepare_release()
+        self.archive.write_bytes(b"corrupt download")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("checksum mismatch", result.stderr)
+        self.assertFalse(self.target.exists())
+
+    def test_unknown_and_locally_modified_binaries_are_preserved(self):
+        self.prepare_release()
+        self.target.parent.mkdir(parents=True)
+        self.target.write_text("unknown executable\n")
+        self.target.chmod(0o755)
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.target.read_text(), "unknown executable\n")
+        self.target.unlink()
+        self.assertEqual(self.install().returncode, 0)
+        self.target.write_text("local modification\n")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.target.read_text(), "local modification\n")
+
+    def test_wrong_release_version_is_not_installed(self):
+        self.prepare_release(reported_version="0.26.9")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("version mismatch", result.stderr)
+        self.assertFalse(self.target.exists())
 
 
 class WorkflowTests(unittest.TestCase):

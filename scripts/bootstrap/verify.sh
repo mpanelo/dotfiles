@@ -6,6 +6,8 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
 source "$REPO_ROOT/scripts/bootstrap/alacritty.sh"
 # shellcheck source=scripts/bootstrap/login-shell.sh
 source "$REPO_ROOT/scripts/bootstrap/login-shell.sh"
+# shellcheck source=scripts/bootstrap/tree-sitter.sh
+source "$REPO_ROOT/scripts/bootstrap/tree-sitter.sh"
 bootstrap_path
 require_command jq
 
@@ -25,7 +27,7 @@ done
 for tool in gopls goimports gofumpt; do
     [[ $(command -v "$tool") == "$HOME/go/bin/$tool" ]] || die "Unexpected owner for $tool"
 done
-for tool in rustup rustc cargo rust-analyzer rustfmt cargo-clippy tree-sitter; do
+for tool in rustup rustc cargo rust-analyzer rustfmt cargo-clippy; do
     [[ $(command -v "$tool") == "$HOME/.cargo/bin/$tool" ]] || die "Unexpected owner for $tool"
 done
 for tool in basedpyright basedpyright-langserver ruff; do
@@ -33,7 +35,8 @@ for tool in basedpyright basedpyright-langserver ruff; do
 done
 [[ $(GOTOOLCHAIN="go$(version go)" "$BREW_PREFIX/bin/go" version) == "go version go$(version go) darwin/"* ]] || die 'Go baseline mismatch.'
 [[ $(rustc --version) == "rustc $(version rust) "* ]] || die 'Rust version mismatch.'
-[[ $(tree-sitter --version) == "tree-sitter $(version tree-sitter-cli)"* ]] || die 'Tree-sitter CLI mismatch.'
+[[ $(command -v tree-sitter) == "$HOME/.local/bin/tree-sitter" ]] || die 'Unexpected owner for Tree-sitter CLI.'
+tree_sitter_is_current || die 'Tree-sitter CLI does not match its pinned release record.'
 while read -r tool _module pin; do
     [[ -n "$tool" && "$tool" != \#* ]] || continue
     [[ $(GOTOOLCHAIN=local "$BREW_PREFIX/bin/go" version -m "$HOME/go/bin/$tool" | awk '$1 == "mod" {print $3; exit}') == "$pin" ]] || die "$tool version mismatch."
