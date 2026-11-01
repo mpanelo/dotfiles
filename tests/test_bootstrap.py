@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import shutil
 import subprocess
@@ -43,6 +44,24 @@ class SafetyTests(unittest.TestCase):
             result = self.preflight()
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(list(self.home.iterdir()), [])
+            count = len(declared_files())
+            self.assertIn(f"{count} checked; {count} absent, 0 matching", result.stdout)
+            self.assertIn("platform, app/font and prerequisite checks are skipped", result.stdout)
+            self.assertIn("not a completed provisioning check", result.stdout)
+            self.assertIn("Not checked: network access", result.stdout)
+
+    def test_bootstrap_help_and_removed_plan_do_not_provision(self):
+        for arg, expected_code in (("--help", 0), ("--plan", 1)):
+            result = subprocess.run(["/bin/bash", str(ROOT / "bootstrap.sh"), arg],
+                                    env=self.env, text=True, capture_output=True)
+            self.assertEqual(result.returncode, expected_code, result.stderr)
+            self.assertEqual(list(self.home.iterdir()), [])
+            if arg == "--help":
+                self.assertNotIn("--plan", result.stdout)
+                self.assertIn("without installing or applying", result.stdout)
+                self.assertIn("does not mean the tools are installed", result.stdout)
+            else:
+                self.assertIn("Unknown argument", result.stderr)
 
     def test_unknown_regular_file_is_not_overwritten(self):
         target = self.home / ".config/fish/config.fish"
@@ -51,6 +70,9 @@ class SafetyTests(unittest.TestCase):
         result = self.preflight()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CONFLICT", result.stderr)
+        self.assertIn("Installation blocked by 1 conflict(s)", result.stderr)
+        self.assertNotIn("check passed", result.stdout)
+        self.assertNotIn("# local customization", result.stdout + result.stderr)
         self.assertEqual(target.read_text(), "# local customization\n")
 
     def test_identical_regular_file_can_be_adopted(self):
@@ -59,6 +81,7 @@ class SafetyTests(unittest.TestCase):
         shutil.copyfile(ROOT / "home/dot_config/fish/config.fish", target)
         result = self.preflight()
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("1 matching", result.stdout)
 
     def test_directory_and_dangling_symlinks_are_refused(self):
         (self.home / ".config").mkdir()
@@ -100,7 +123,9 @@ class SafetyTests(unittest.TestCase):
             entries.append(hashlib.sha256(path.read_bytes()).hexdigest() + "  " + target)
         baseline.write_text("\n".join(entries) + "\n")
         baseline.chmod(0o600)
-        self.assertEqual(self.preflight().returncode, 0)
+        result = self.preflight()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f"{len(declared_files())} unchanged since last apply", result.stdout)
         target = self.home / ".config/fish/config.fish"
         target.write_text("# new local customization\n")
         self.assertNotEqual(self.preflight().returncode, 0)
@@ -174,6 +199,191 @@ class SafetyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("local changes", result.stderr)
         self.assertEqual((target / "plugin.conf").read_text(), "local customization\n")
+
+
+class WorkflowTests(unittest.TestCase):
+    setUp = SafetyTests.setUp
+
+    def prepare_commands(self):
+        self.root = Path(self.tmp.name)
+        self.bin = self.root / "brew/bin"
+        self.bin.mkdir(parents=True)
+        self.env["PATH"] = str(self.bin) + os.pathsep + self.env["PATH"]
+        self.account_shell = self.root / "account-shell"
+        self.account_shell.write_text("/bin/zsh\n")
+        self.calls = self.root / "calls.log"
+        self.packages = self.root / "packages.txt"
+        self.packages.write_text("fish 4.9.3\n")
+        self.env.update(ACCOUNT_SHELL=str(self.account_shell), CALL_LOG=str(self.calls),
+                        PACKAGE_FILE=str(self.packages), PRIVATE_SENTINEL="must-not-be-logged")
+        commands = {
+            "dscl": 'printf "UserShell: %s\\n" "$(cat "$ACCOUNT_SHELL")"\n',
+            "fish": 'exit 0\n',
+            "sudo": 'printf "sudo\\n" >> "$CALL_LOG"\nexec "$@"\n',
+            "chsh": 'printf "chsh\\n" >> "$CALL_LOG"\nprintf "%s\\n" "$2" > "$ACCOUNT_SHELL"\n',
+            "brew": '''case "$1" in
+list) if [ "$2" = --formula ]; then cat "$PACKAGE_FILE"; fi ;;
+tap) printf 'raine/workmux\\n' ;;
+info) printf '==> Caveats\\nOptional shell integration\\n' ;;
+bundle) printf 'tmux 3.8\\n' >> "$PACKAGE_FILE"; printf 'partial install output\\n'; printf 'fixture failure\\n' >&2; exit 17 ;;
+*) exit 99 ;;
+esac
+''',
+        }
+        for name, body in commands.items():
+            command = self.bin / name
+            command.write_text("#!/bin/sh\nset -eu\n" + body)
+            command.chmod(0o755)
+
+    def shell(self, code, *args):
+        prefix = 'source "$1/lib.sh"; source "$1/session.sh"; source "$1/login-shell.sh"; BREW_PREFIX=$2; '
+        return subprocess.run(["/bin/bash", "-c", prefix + code, "fixture", str(SCRIPTS),
+                               str(self.bin.parent), *map(str, args)],
+                              env=self.env, text=True, capture_output=True)
+
+    def test_failed_install_keeps_status_output_caveats_and_original_inventory(self):
+        self.prepare_commands()
+        result = self.shell('begin_bootstrap_run; status=0; run_logged brew-bundle "$BREW_PREFIX/bin/brew" bundle || status=$?; save_brew_caveats; exit "$status"')
+        self.assertEqual(result.returncode, 17, result.stderr)
+        runs = list((self.home / ".local/state/dotfiles/runs").iterdir())
+        self.assertEqual(len(runs), 1)
+        run = runs[0]
+        self.assertEqual(run.stat().st_mode & 0o777, 0o700)
+        self.assertEqual((run / "formulae-before.txt").read_text(), "fish 4.9.3\n")
+        self.assertIn("tmux 3.8", (run / "formulae-after.txt").read_text())
+        self.assertIn("partial install output", (run / "brew-bundle.log").read_text())
+        self.assertIn("fixture failure", (run / "brew-bundle.log").read_text())
+        self.assertIn("Optional shell integration", (run / "brew-info.txt").read_text())
+        self.assertEqual((run / "login-shell-before.txt").read_text(), "UserShell: /bin/zsh\n")
+        for path in run.iterdir():
+            self.assertNotIn(self.env["PRIVATE_SENTINEL"], path.read_text())
+
+    def test_login_shell_registration_and_change_are_idempotent(self):
+        self.prepare_commands()
+        registry = self.root / "shells"
+        registry.write_text("/bin/zsh\n/bin/bash\n")
+        (self.home / ".config/fish").mkdir(parents=True)
+        result = self.shell('begin_bootstrap_run; set_fish_login_shell "$BREW_PREFIX/bin/fish" "$3"; set_fish_login_shell "$BREW_PREFIX/bin/fish" "$3"; verify_fish_login_shell', registry)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls.read_text().splitlines(), ["sudo", "chsh"])
+        self.assertEqual(registry.read_text().splitlines().count(str(self.bin / "fish")), 1)
+        self.assertTrue(registry.read_text().startswith("/bin/zsh\n/bin/bash\n"))
+        self.assertEqual(self.account_shell.read_text().strip(), str(self.bin / "fish"))
+
+    def test_failed_chsh_does_not_claim_the_shell_changed(self):
+        self.prepare_commands()
+        (self.bin / "chsh").write_text("#!/bin/sh\nexit 23\n")
+        registry = self.root / "shells"
+        registry.write_text("/bin/zsh\n")
+        (self.home / ".config/fish").mkdir(parents=True)
+        result = self.shell('set_fish_login_shell "$BREW_PREFIX/bin/fish" "$3"', registry)
+        self.assertEqual(result.returncode, 23, result.stderr)
+        self.assertEqual(self.account_shell.read_text(), "/bin/zsh\n")
+        self.assertNotIn("Fish is the account login shell", result.stdout)
+
+
+@unittest.skipUnless(Path("/usr/libexec/PlistBuddy").exists(), "macOS app bundle tests")
+class AlacrittyTests(unittest.TestCase):
+    """Exercise the real installer with offline assets and fake disk mounting."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="dotfiles-alacritty-test-")
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.home = self.root / "home"
+        self.home.mkdir()
+        self.bin = self.root / "bin"
+        self.bin.mkdir()
+        self.source = self.root / "Alacritty.app"
+        (self.source / "Contents/MacOS").mkdir(parents=True)
+        self.executable = self.source / "Contents/MacOS/alacritty"
+        self.executable.write_text("fixture executable; never executed\n")
+        self.executable.chmod(0o755)
+        (self.source / "Contents/Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleIdentifier": "org.alacritty", "CFBundleShortVersionString": "0.17.0"}))
+        self.dmg = self.root / "fixture.dmg"
+        self.dmg.write_bytes(b"offline DMG fixture")
+        (self.root / "manifests").mkdir()
+        (self.root / "manifests/versions.json").write_text(json.dumps({
+            "alacritty": "0.17.0",
+            "alacritty-dmg-sha256": hashlib.sha256(self.dmg.read_bytes()).hexdigest()}))
+        commands = {
+            "curl": 'printf "download\\n" >> "$CALL_LOG"\nwhile [ "$1" != "-o" ]; do shift; done\ncp "$FIXTURE_DMG" "$2"\n',
+            "hdiutil": 'printf "%s\\n" "$1" >> "$CALL_LOG"\nif [ "$1" = attach ]; then\nwhile [ "$1" != "-mountpoint" ]; do shift; done\ncp -R "$FIXTURE_APP" "$2/Alacritty.app"\nfi\n',
+            "lipo": 'exit 0\n',
+            "infocmp": 'exit 0\n',  # Existing definitions must be preserved.
+            "tic": 'printf "unexpected terminfo write\\n" >&2\nexit 1\n',
+        }
+        for command, body in commands.items():
+            path = self.bin / command
+            path.write_text("#!/bin/sh\nset -eu\n" + body)
+            path.chmod(0o755)
+        self.log = self.root / "calls.log"
+        self.env = dict(os.environ, HOME=str(self.home),
+                        PATH=str(self.bin) + os.pathsep + os.environ["PATH"],
+                        FIXTURE_APP=str(self.source), FIXTURE_DMG=str(self.dmg),
+                        CALL_LOG=str(self.log), TMPDIR=str(self.root))
+        self.app = self.home / "Applications/Alacritty.app"
+
+    def install(self):
+        # The fake Brew prefix prevents accidental reuse of a real global app.
+        code = 'source "$1/lib.sh"; source "$1/alacritty.sh"; REPO_ROOT=$2; BREW_PREFIX=$2/brew; install_alacritty'
+        return subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS), str(self.root)],
+                              env=self.env, text=True, capture_output=True)
+
+    def test_install_and_retry_preserve_bundle_and_skip_download(self):
+        for _ in range(2):
+            result = self.install()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((self.app / "Contents/MacOS/alacritty").read_bytes(), self.executable.read_bytes())
+            self.assertEqual(os.readlink(self.home / ".local/bin/alacritty"), str(self.app / "Contents/MacOS/alacritty"))
+        self.assertEqual(self.log.read_text().splitlines(), ["download", "attach", "detach"])
+        self.assertFalse(list(self.home.glob("Applications/.dotfiles-alacritty.*")))
+        self.assertFalse(list(self.root.glob("dotfiles-alacritty.*")))
+        record = self.home / ".local/state/dotfiles/alacritty.sha256"
+        self.assertEqual(record.stat().st_mode & 0o777, 0o600)
+
+    def test_checksum_mismatch_never_mounts_or_installs(self):
+        self.dmg.write_bytes(b"corrupted download")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("checksum mismatch", result.stderr)
+        self.assertEqual(self.log.read_text().splitlines(), ["download"])
+        self.assertFalse(self.app.exists())
+
+    def test_existing_unknown_or_modified_app_is_not_overwritten(self):
+        self.app.parent.mkdir(parents=True)
+        shutil.copytree(self.source, self.app)
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unowned or modified", result.stderr)
+        self.assertFalse(self.log.exists())
+        shutil.rmtree(self.app)
+        self.assertEqual(self.install().returncode, 0)
+        binary = self.app / "Contents/MacOS/alacritty"
+        binary.write_text("user modification\n")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(binary.read_text(), "user modification\n")
+        self.assertEqual(self.log.read_text().splitlines(), ["download", "attach", "detach"])
+
+    def test_invalid_bundle_is_rejected_and_disk_is_detached(self):
+        (self.source / "Contents/Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleIdentifier": "unexpected.app", "CFBundleShortVersionString": "0.17.0"}))
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unexpected app bundle identifier", result.stderr)
+        self.assertEqual(self.log.read_text().splitlines(), ["download", "attach", "detach"])
+        self.assertFalse(self.app.exists())
+
+    def test_redirected_cli_is_not_overwritten(self):
+        binary = self.home / ".local/bin/alacritty"
+        binary.parent.mkdir(parents=True)
+        binary.symlink_to(self.home / "another-app")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(os.readlink(binary), str(self.home / "another-app"))
+        self.assertFalse(self.log.exists())
 
 
 class SourceTests(unittest.TestCase):

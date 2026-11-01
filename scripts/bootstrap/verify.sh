@@ -2,6 +2,10 @@
 set -euo pipefail
 # shellcheck source=scripts/bootstrap/lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=scripts/bootstrap/alacritty.sh
+source "$REPO_ROOT/scripts/bootstrap/alacritty.sh"
+# shellcheck source=scripts/bootstrap/login-shell.sh
+source "$REPO_ROOT/scripts/bootstrap/login-shell.sh"
 bootstrap_path
 require_command jq
 
@@ -45,7 +49,16 @@ PATH=/usr/bin:/bin "$HOME/.local/bin/basedpyright" --version
 
 log 'Checking package declarations, font/application presence and shell syntax'
 "$BREW_PREFIX/bin/brew" bundle check --file="$REPO_ROOT/Brewfile"
-[[ -d /Applications/Alacritty.app ]] || die 'Alacritty application is missing.'
+app=$(alacritty_app)
+[[ -d "$app" ]] || die 'Alacritty application is missing.'
+if [[ "$app" != /Applications/Alacritty.app ]]; then
+    alacritty_is_managed || die 'Alacritty application differs from its ownership record.'
+    [[ $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist") == "$(version alacritty)" ]] || die 'Alacritty version mismatch.'
+    [[ -L "$HOME/.local/bin/alacritty" && $(readlink "$HOME/.local/bin/alacritty") == "$app/Contents/MacOS/alacritty" ]] || die 'Alacritty CLI link is missing or redirected.'
+fi
+for entry in alacritty alacritty-direct; do
+    infocmp "$entry" >/dev/null 2>&1 || die "Missing terminfo: $entry"
+done
 font_found=0
 for font in "$HOME/Library/Fonts/"*JetBrains*"Nerd"*.ttf; do
     [[ ! -f "$font" ]] || font_found=1
@@ -53,4 +66,5 @@ done
 ((font_found)) || die 'JetBrainsMono Nerd Font was not found.'
 while IFS= read -r file; do fish --no-config --no-execute "$file"; done < <(find "$HOME/.config/fish" -name '*.fish' -type f)
 editor_check
+verify_fish_login_shell
 log 'Core checks passed. Complete the visual and interactive checks in docs/bootstrap.md.'

@@ -31,7 +31,7 @@ require_macos() {
 
 bootstrap_path() {
     require_macos
-    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$BREW_PREFIX/bin:$BREW_PREFIX/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$BREW_PREFIX/opt/ssh-copy-id/bin:$BREW_PREFIX/bin:$BREW_PREFIX/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
     export UV_TOOL_DIR="$HOME/.local/share/uv/tools" UV_TOOL_BIN_DIR="$HOME/.local/bin"
 }
 

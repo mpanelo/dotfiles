@@ -16,6 +16,74 @@ bootstrap. Files already identical to the desired source are safe to adopt.
 Missing tools and artifacts are rechecked rather than trusting completion stamps.
 Review any genuinely divergent file; do not blindly rerun with overwrite flags.
 
+## Failed provisioning, cleanup, and a truly fresh target
+
+Bootstrap is staged, not transactional. A failed `brew bundle` can leave
+successfully installed formulae, dependencies and casks behind. There is no
+`chezmoi destroy` or generic uninstall command that safely reverses all of it.
+Resuming after fixing a failure is supported and tests recovery, but it is not
+another clean-machine test.
+
+For a genuinely fresh Mac Studio test, first copy anything you want to keep,
+including the uncommitted checklist and failure logs, off the Mac. On the Studio
+only, use **System Settings > General > Transfer or Reset > Erase All Content
+and Settings** and complete Setup Assistant without restoring the previous apps
+or home directory. This erases user data, settings and applications while
+retaining the installed macOS version. Follow Apple's
+[Erase Assistant instructions](https://support.apple.com/en-us/102664).
+For repeated tests, a disposable macOS VM with a pre-provisioning snapshot is
+another option. A new user account shares Homebrew and is not a fresh target.
+No erase or uninstall operation is performed by bootstrap.
+
+For a narrower development cleanup, when Homebrew was absent before the run and
+you have no other Homebrew software to preserve:
+
+1. Switch the account back to its prior registered shell before removing Fish.
+   For a new account whose previous shell was zsh, run `chsh -s /bin/zsh` and
+   open a new login session. Do not rely on `$SHELL` in an old session to verify
+   the account setting; use `dscl . -read "/Users/$(id -un)" UserShell`.
+2. Review `/opt/homebrew/bin/brew list --cask --versions`. Uninstall each cask
+   known to have been introduced by this run while Homebrew still works. For
+   the reported package-stage failure, the installed cask was the Nerd Font:
+   `/opt/homebrew/bin/brew uninstall --cask font-jetbrains-mono-nerd-font`.
+   This removes its registered font artifacts outside the Homebrew prefix.
+   Do not use `--zap`, remove unrelated casks, or delete font directories.
+3. Download and review Homebrew's official uninstaller. Run its `--dry-run`
+   first, then, only after reviewing the proposed removals, run it interactively
+   against the native prefix. Do not force an unattended uninstall:
+
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh -o /tmp/homebrew-uninstall.sh
+   /bin/bash /tmp/homebrew-uninstall.sh --path=/opt/homebrew --dry-run
+   # Destructive: run only after reviewing the dry-run and saving needed data.
+   /bin/bash /tmp/homebrew-uninstall.sh --path=/opt/homebrew
+   ```
+
+   Homebrew documents this uninstaller in its
+   [FAQ](https://docs.brew.sh/FAQ#how-do-i-uninstall-homebrew). If Homebrew
+   existed before bootstrap, do not uninstall the prefix; use the private
+   package baselines to review additions, dependent packages, and cask artifacts
+   individually. A baseline created after the original failure cannot prove
+   what was present before that failure.
+4. Review remaining chezmoi initialization/cache/state, source checkouts,
+   Homebrew trust metadata and shell-profile additions, if any. Preserve source
+   and personal files. The reported failure occurred in the packages hook,
+   before language-tool installation and managed dotfile deployment; there is
+   no reason to delete all of `~/.config`, `~/.cargo`, or `~/go` for that failure.
+   Later-stage failures may also have installed the user-local Alacritty app,
+   its CLI/terminfo, uv tools, Go/Rust tools or plugin caches. Review the failed
+   stage and known ownership records rather than deleting these directories.
+5. If bootstrap registered Fish in `/etc/shells`, remove only its exact added
+   line during a deliberate system-file edit after all accounts that use it
+   have switched away. Preserve other registered shells. Leave Command Line
+   Tools intact unless removal is separately required and reviewed.
+
+This cleanup can make the next run useful for testing package installation, but
+it does not prove factory-clean macOS. Bootstrap does not take an OS snapshot,
+track every installer side effect, or automatically roll back successful
+stages. Private package inventories and logs aid a reviewed cleanup; a saved
+system/VM snapshot or erasure is required for a reproducible fresh-state reset.
+
 ## Private backup
 
 At the separately authorized handoff, the backup-only command is:
@@ -57,10 +125,14 @@ After the Mac Studio passes acceptance checks:
 4. Move only the known directory/file links into a private holding directory.
    Do not recursively delete their target directories. Keep unrelated files in
    real directories such as `~/.config/tmux` in place.
-5. Resolve unmanaged Alacritty/fonts. Homebrew's `--adopt` is appropriate only
-   when every existing artifact is identical to the selected cask's artifacts.
-   For different versions, review and back up the application/font files before
-   a deliberate replacement. Never use an automatic force overwrite.
+5. Resolve unmanaged Alacritty/fonts. Keep existing Homebrew-managed Alacritty;
+   its disabled cask is no longer installed by bootstrap. Unknown apps in either
+   Applications directory need a reviewed handoff before the user-local DMG
+   installation. For fonts, Homebrew's `--adopt` is appropriate only when every
+   existing artifact is identical to the selected cask's artifacts. Otherwise,
+   review and back up the files before a deliberate replacement. Never force
+   an overwrite. A modified managed Alacritty app also stops provisioning;
+   compare it before moving it aside for an intentional reinstall or upgrade.
 6. Review executable ownership, especially any standalone uv that would shadow
    Homebrew uv in `~/.local/bin`. Preserve unrelated Go/Cargo/Node installations;
    resolve PATH conflicts intentionally instead of uninstalling them.

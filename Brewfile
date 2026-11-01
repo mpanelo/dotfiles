@@ -22,11 +22,12 @@ brew "tlrc"
 brew "jq"
 brew "uv"
 brew "fnm" # Manager only: bootstrap never installs a Node version.
-brew "raine/workmux/workmux"
+# Trust this formula only, rather than every package/command in the tap.
+brew "raine/workmux/workmux", trusted: true
 brew "go"
 brew "lua-language-server"
 brew "stylua"
 brew "luarocks"
 
-cask "alacritty"
+# Alacritty's disabled cask is replaced by a verified upstream DMG install.
 cask "font-jetbrains-mono-nerd-font"

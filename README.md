@@ -29,12 +29,17 @@ out that revision under `~/.local/share/chezmoi`, installs Homebrew and
 chezmoi when needed, and runs the provisioning stages. If Command Line
 Tools need a system dialog, finish it and rerun the same command.
 
-From an existing checkout, preview the stages and check for conflicts:
+From an existing checkout, check for installation conflicts:
 
 ```sh
-./bootstrap.sh --plan
 ./bootstrap.sh --check
 ```
+
+The check reports platform/path compatibility, existing configuration
+and symlink conflicts, and unmanaged app/font installations. It also
+reports whether Command Line Tools, Homebrew, and chezmoi are present.
+A pass means no blocking conflicts were found; tools can still be
+missing. It does not verify installed versions, LSPs, or network access.
 
 To install the core tools and apply the configuration:
 
@@ -42,9 +47,23 @@ To install the core tools and apply the configuration:
 ./bootstrap.sh
 ```
 
-Open Alacritty after provisioning to start Fish with the managed PATH,
-prompt, and keybindings. Git identity, authentication, application
-logins, and any system login-shell change remain manual choices.
+Alacritty installs from a pinned, checksum-verified official GitHub DMG
+into `~/Applications/Alacritty.app`, with a CLI link in `~/.local/bin`.
+Homebrew's Alacritty cask is disabled; an existing Homebrew-managed app
+is kept. Bootstrap preserves quarantine and macOS security settings.
+macOS may require manual app approval on first launch.
+
+After the configuration and plugins are installed, bootstrap registers
+Homebrew Fish in `/etc/shells` if needed and uses `chsh` to make it the
+current account's login shell. Authentication may be requested. Open a
+new terminal/login session to use it; existing sessions keep running.
+Git identity, authentication, and application logins remain manual.
+
+Homebrew output, caveats, package inventories, and the prior login shell
+are saved privately in `~/.local/state/dotfiles/runs/`.
+Review optional package setup instructions there; bootstrap does not
+blindly append recommendations to shell configuration. See the
+[recovery guide](docs/recovery.md) for cleanup and clean-machine resets.
 
 ## Existing Macs
 

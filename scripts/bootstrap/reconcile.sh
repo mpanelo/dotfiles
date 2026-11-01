@@ -2,14 +2,26 @@
 set -euo pipefail
 # shellcheck source=scripts/bootstrap/lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=scripts/bootstrap/alacritty.sh
+source "$REPO_ROOT/scripts/bootstrap/alacritty.sh"
+# shellcheck source=scripts/bootstrap/session.sh
+source "$REPO_ROOT/scripts/bootstrap/session.sh"
+# shellcheck source=scripts/bootstrap/login-shell.sh
+source "$REPO_ROOT/scripts/bootstrap/login-shell.sh"
 [[ ${DOTFILES_ISOLATED_TEST:-0} != 1 ]] || die 'Provisioning is disabled in the isolated test harness.'
 bootstrap_path
 [[ ${1:-} == packages ]] || require_command jq
 /bin/bash "$REPO_ROOT/scripts/bootstrap/preflight.sh"
+begin_bootstrap_run
 
 install_packages() {
     log 'Reconciling core Homebrew packages (no routine upgrades or cleanup)'
-    "$BREW_PREFIX/bin/brew" bundle install --no-upgrade --file="$REPO_ROOT/Brewfile"
+    local status=0
+    run_logged brew-bundle "$BREW_PREFIX/bin/brew" bundle install --no-upgrade --file="$REPO_ROOT/Brewfile" || status=$?
+    # A caveat-report failure must not hide the original installation failure.
+    save_brew_caveats || printf 'Could not finish Homebrew diagnostics; review the raw install log.\n' >&2
+    ((status == 0)) || return "$status"
+    install_alacritty
 }
 
 install_toolchains() {
@@ -166,8 +178,9 @@ case ${1:-} in
     packages) install_packages ;;
     toolchains) install_toolchains ;;
     plugins) install_plugins ;;
+    shell) set_fish_login_shell "$BREW_PREFIX/bin/fish" /etc/shells ;;
     finish)
         /bin/bash "$REPO_ROOT/scripts/bootstrap/verify.sh"
         /bin/bash "$REPO_ROOT/scripts/bootstrap/record-state.sh" ;;
-    *) die 'Usage: reconcile.sh packages|toolchains|plugins|finish' ;;
+    *) die 'Usage: reconcile.sh packages|toolchains|plugins|shell|finish' ;;
 esac

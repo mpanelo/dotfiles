@@ -51,7 +51,7 @@ the manifests are implemented.
 | Area | Core tooling | Proposed owner |
 | --- | --- | --- |
 | Provisioning | Homebrew, chezmoi | Official Homebrew installer; Homebrew installs chezmoi |
-| Terminal | Alacritty, Fish, tmux, Starship | Homebrew formulae and Alacritty cask |
+| Terminal | Alacritty, Fish, tmux, Starship | Homebrew formulae; pinned official Alacritty DMG |
 | Font | JetBrainsMono Nerd Font | Homebrew `font-jetbrains-mono-nerd-font` cask |
 | Editor | Neovim | Homebrew |
 | Search/navigation | fd, ripgrep, fzf, zoxide | Homebrew |
@@ -61,7 +61,7 @@ the manifests are implemented.
 | Structured data | jq | Homebrew |
 | Python tool runner | uv | Homebrew; manage needed tool runtimes through uv |
 | On-demand Node manager | fnm, with no Node version installed | Homebrew; no general-purpose Node/npm installation |
-| Worktree workflow | workmux | Homebrew `raine/workmux` tap |
+| Worktree workflow | workmux | Homebrew `raine/workmux` tap, trusting only the workmux formula |
 | Go development | Go, gopls, goimports, gofumpt | Homebrew base Go; pinned Go-native tool installation |
 | Rust development | rustup, rustc, Cargo, rust-analyzer, rustfmt, Clippy, rust-src | Official rustup installation and pinned toolchain/components |
 | Python editor support | BasedPyright, Ruff | Versioned uv tool installation; BasedPyright owns its private Node runtime |
@@ -129,10 +129,18 @@ family already configured; do not silently switch to Mono or Propo variants.
 
 On a new Mac, Homebrew installs the fonts before the terminal is validated. On
 the existing Mac, preflight must detect manually installed font files and an
-existing unmanaged Alacritty application. Adopt existing cask artifacts only if
-they are identical to the selected release. Homebrew supports `--adopt` for that
-case. If files differ, stop and plan a reviewed backup/handoff instead of using
-`--force`, overwriting fonts, or deleting them.
+existing unmanaged Alacritty application. Adopt existing font cask artifacts
+only if they are identical to the selected release. Homebrew supports `--adopt`
+for that case. If files differ, stop and plan a reviewed backup/handoff instead
+of using `--force`, overwriting fonts, or deleting them.
+
+Alacritty's Homebrew cask is disabled because it fails Gatekeeper checks.
+Install its pinned, SHA-256-verified official GitHub DMG into
+`~/Applications/Alacritty.app`, preserving bundle metadata and tracking installed
+contents for safe retries. Keep an existing Homebrew-managed app. Do not remove
+quarantine, re-sign the release or change macOS security settings. First launch
+and any app-specific approval remain manual; checksum verification does not
+prove notarization. See the bootstrap runbook for ownership and update behavior.
 
 Verify family availability, duplicate-font conflicts, and Nerd Font glyphs in
 Alacritty, tmux, Starship, Neo-tree, and Neovim diagnostics. Keep font updates
@@ -268,8 +276,11 @@ reviewed manifest/lockfile changes, tested on one Mac before the other.
 
 Manual actions may include macOS account setup, administrator authentication,
 Command Line Tools dialogs, Git identity/authentication/signing, application
-logins, and device permissions. Changing the system login shell is optional;
-Alacritty can launch Fish directly. Any macOS preference automation is a separate,
+logins, and device permissions. Fish is the required account login shell:
+register the native Homebrew path in `/etc/shells` if absent, then use `chsh`
+after installing configuration and plugins. Record the prior shell for recovery
+and verify the account setting, rather than an inherited `$SHELL` value.
+Authentication may be required. Any macOS preference automation is a separate,
 reviewed usability-only stage. Do not change macOS security settings.
 
 Never inspect or commit secrets, credentials, private keys, machine identifiers,

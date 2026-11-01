@@ -10,7 +10,6 @@ provisioned and the MacBook handoff is separately reviewed.
 From the checkout:
 
 ```sh
-./bootstrap.sh --plan
 ./bootstrap.sh --check
 python3 tests/test_bootstrap.py
 shellcheck -x bootstrap.sh install.sh scripts/bootstrap/*.sh
@@ -18,10 +17,23 @@ tests/run-isolated.sh --download-chezmoi
 tests/run-isolated.sh --download-chezmoi --smoke
 ```
 
-`--plan` prints the stages. `--check` is read-only and deliberately fails when it
-finds directory/file symlinks, divergent configurations, shadowing `~/.tmux.conf`,
-or unmanaged Alacritty/font installations. That refusal is expected on the
-reference Mac; it is not an instruction to remove those files.
+`--check` reports whether the installation has any blocking configuration or
+path conflicts, without installing software or changing destination files. It
+checks platform/default directory settings, source inventory coverage, existing
+file contents, symlinks/runtime directories, a shadowing `~/.tmux.conf`, and
+unmanaged Alacritty or JetBrains Nerd Font installations. The output includes
+file counts and the detected Command Line Tools, Homebrew and chezmoi state.
+
+Missing prerequisites are informational because bootstrap will install them.
+On a clean Mac, a pass normally means there are no existing files to conflict
+with installation. It does not mean the environment has been provisioned or
+tested. Network access, administrator authentication, installed tool versions,
+language-server behavior and visual rendering are outside this check. Use
+`scripts/bootstrap/verify.sh` and the manual checks after provisioning.
+
+Existing directory/file symlinks or divergent configurations cause a failure.
+That refusal is expected on the reference Mac; it is not an instruction to remove
+those files.
 
 The offline Python suite never invokes an installer or chezmoi apply.
 `tests/render-templates.go` additionally checks template syntax and architecture
@@ -82,15 +94,55 @@ Bootstrap does the following:
 2. Detects native macOS architecture and installs Homebrew if absent.
 3. Installs chezmoi and initializes the source without applying immediately.
 4. Uses ordered chezmoi scripts for core packages, pinned language tools,
-   configuration, pinned plugins, and verification.
+   configuration, pinned plugins, Fish login-shell setup, and verification.
 5. Records hashes of successfully deployed configuration for later conflict
    detection. Local edits that diverge from the recorded or desired state stop a
    subsequent apply instead of being silently overwritten.
 
 Do not run bootstrap with sudo. The implementation targets the standard
 `~/.config`, `~/.cargo`, and `~/.rustup` locations; custom locations need a reviewed
-extension rather than a guessed migration. It does not change the login shell,
-macOS preferences, security settings, or authentication.
+extension rather than a guessed migration. Fish is registered in `/etc/shells`
+only if absent, then `chsh` changes the current account's login shell to the
+native Homebrew Fish path. These steps can request administrator/account
+authentication and are idempotent. Fish binary and configuration syntax checks
+run first. New login sessions use Fish; Terminal.app must use its default login
+shell setting if it previously had an explicit zsh command. Alacritty already
+launches Fish directly. This does not change other accounts, macOS preferences,
+Gatekeeper settings, or stored credentials.
+
+## Homebrew output and follow-up instructions
+
+Provisioning prints a private run directory under
+`~/.local/state/dotfiles/runs/`. The Homebrew installer, initial chezmoi install,
+and Bundle stage save their combined output while still showing it in the
+terminal. Failed Bundle output is retained and its failure status is preserved.
+`brew-info.txt` contains `brew info --installed --verbose`, including current
+caveats for installed formulae and casks, even when a retry skips installation.
+`formulae-*`, `casks-*`, and `taps-*` record before/after package inventories;
+`homebrew-before.txt` says whether Homebrew existed, and
+`login-shell-before.txt` records the prior account shell. The normal bootstrap
+shares a run directory with its hooks; hooks invoked by a direct chezmoi apply
+can create separate run directories. These are diagnostics, not a full machine
+snapshot or an automatic uninstall manifest. They cannot reconstruct an earlier
+run that predates this logging feature.
+
+Run directories have mode 0700 and stay outside the repository. Logging captures
+command output, not input, passwords, shell tracing, profiles, or environment
+dumps. Treat the resulting records as private and review before sharing.
+
+Package caveats are recommendations to assess, not commands to run blindly:
+
+| Recommendation | Managed handling |
+| --- | --- |
+| Homebrew shellenv in zsh/bash profiles | Fish loads `brew shellenv fish` in `conf.d/00-paths.fish`; no zsh/bash edits are needed |
+| Keg-only ssh-copy-id PATH | Its `opt/ssh-copy-id/bin` path is managed in Fish and bootstrap |
+| fzf shell integration | The pinned fzf.fish plugin and existing keybindings provide it |
+| zsh completions or tmux example config | Informational; preserve the managed Fish/tmux configuration |
+| Optional Git GUI or service setup | Outside core; do not install extras or start services automatically |
+
+Check the report after deliberate upgrades because package recommendations can
+change. Add required integration explicitly to the managed configuration and
+validate it before applying it to another Mac.
 
 ## Ownership
 
@@ -98,6 +150,29 @@ The root `Brewfile` is the core package declaration. `macos/brew/Brewfile` and
 component setup scripts remain legacy compatibility files while the old layout
 is linked into the reference machine. Do not run the legacy installers as part
 of the new bootstrap.
+
+Alacritty is the application exception to Homebrew ownership. Its cask is
+disabled for failing Gatekeeper checks. Bootstrap downloads the official GitHub
+DMG at the version and SHA-256 in `manifests/versions.json`, verifies it before
+mounting read-only, and checks bundle identity, version and native architecture.
+The app is copied to `~/Applications/Alacritty.app` without administrator access.
+The installer preserves bundle metadata, never removes quarantine, never
+re-signs the app, and never changes Gatekeeper settings. First launch and any
+app-specific macOS approval are manual. A checksum verifies the downloaded
+bytes against the reviewed pin; it does not establish Apple notarization.
+
+An existing Homebrew-managed `/Applications/Alacritty.app` is kept. A new user
+app receives a private content-hash record under `~/.local/state/dotfiles/`;
+unknown or modified apps are refused. A repeat run checks that record and the
+version without downloading again. Version upgrades require a reviewed app
+replacement; bootstrap does not overwrite an existing version. The CLI links
+from `~/.local/bin/alacritty`. Missing Alacritty terminfo entries are installed
+in `~/.terminfo`; existing available definitions are preserved.
+
+The workmux entry declares trust for `raine/workmux/workmux` only, using
+Homebrew's `trusted: true` Brewfile option. It does not trust the entire tap or
+disable tap-trust enforcement. The keg-only Homebrew `ssh-copy-id` directory is
+included in the bootstrap and Fish PATH so the installed version is used.
 
 `manifests/versions.json` pins Go, Rust, the uv tool Python runtime, BasedPyright,
 its Node wheel, Ruff, and the Tree-sitter CLI. `go-tools.tsv` pins Go editor
