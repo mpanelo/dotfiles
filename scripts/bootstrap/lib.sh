@@ -12,6 +12,19 @@ die() { printf 'dotfiles: %s\n' "$*" >&2; exit 1; }
 sha_file() { shasum -a 256 "$1" | awk '{print $1}'; }
 require_command() { command -v "$1" >/dev/null 2>&1 || die "Required command is missing: $1"; }
 
+download_installer() {
+    local requested=$1 destination=$2 name url checksum
+    while read -r name url checksum; do
+        [[ "$name" == "$requested" ]] || continue
+        [[ "$url" == https://* && "$checksum" =~ ^[a-f0-9]{64}$ ]] || die 'Invalid installer declaration.'
+        # -q prevents curl from sourcing personal configuration or credentials.
+        curl -q --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL "$url" -o "$destination" || return
+        [[ $(sha_file "$destination") == "$checksum" ]] || die "$requested installer checksum mismatch; refusing to execute it."
+        return
+    done < "$REPO_ROOT/manifests/installers.tsv"
+    die "No pinned installer is declared for $requested."
+}
+
 require_macos() {
     [[ $(uname -s) == Darwin ]] || die 'This bootstrap supports macOS only.'
     case $(uname -m) in
@@ -52,6 +65,29 @@ safe_path() {
 }
 
 version() { jq -er --arg key "$1" '.[$key]' "$REPO_ROOT/manifests/versions.json"; }
+
+check_fish_syntax() {
+    local fish=${1:-fish} relative source_file checksum
+    while read -r relative source_file; do
+        case "$relative" in
+            .config/fish/*.fish)
+                safe_path "$HOME" "$relative" || die "Unsafe managed Fish file: $relative"
+                [[ -f "$HOME/$relative" ]] || die "Missing managed Fish file: $relative"
+                "$fish" --no-config --no-execute "$HOME/$relative" || return ;;
+        esac
+    done < "$REPO_ROOT/manifests/config-files.tsv"
+    safe_path "$HOME" '.local/state/dotfiles/fish-plugin-files.sha256' || die 'Unsafe Fish plugin inventory.'
+    if [[ -f "$STATE_DIR/fish-plugin-files.sha256" ]]; then
+        while read -r checksum relative; do
+            case "$relative" in
+                .config/fish/functions/*.fish|.config/fish/conf.d/*.fish|.config/fish/completions/*.fish)
+                    safe_path "$HOME" "$relative" || die "Unsafe Fish plugin file: $relative"
+                    [[ -f "$HOME/$relative" ]] || die "Missing Fish plugin file: $relative"
+                    "$fish" --no-config --no-execute "$HOME/$relative" || return ;;
+            esac
+        done < "$STATE_DIR/fish-plugin-files.sha256"
+    fi
+}
 
 desired_hash() {
     local destination=$1 relative=$2 source_file=$3

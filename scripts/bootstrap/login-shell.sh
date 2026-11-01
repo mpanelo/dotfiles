@@ -10,11 +10,11 @@ verify_fish_login_shell() {
 }
 
 set_fish_login_shell() {
-    local fish=$1 registry=$2 current file
+    local fish=$1 registry=$2 current
     [[ -x "$fish" ]] || die 'Fish must be installed before changing the login shell.'
     [[ -f "$registry" && ! -L "$registry" ]] || die 'Unsafe shell registry.'
     "$fish" --no-config -c exit
-    while IFS= read -r file; do "$fish" --no-config --no-execute "$file"; done < <(find "$HOME/.config/fish" -type f -name '*.fish')
+    check_fish_syntax "$fish"
     current=$(account_login_shell)
     [[ -n "$current" ]] || die 'Cannot determine the current account login shell.'
     printf 'Current account shell: %s; requested shell: %s\n' "$current" "$fish"

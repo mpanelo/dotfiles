@@ -131,17 +131,23 @@ At the separately authorized handoff, the backup-only command is:
 
 It prints a newly created private directory under
 `~/.local/state/dotfiles/backups/`. Its `files/` tree contains copies of declared
-configuration, `links/` preserves directory symlinks, `files.sha256` describes
+configuration, `links/` preserves directory and individual file symlinks, `files.sha256` describes
 saved file contents, and `absent.txt` records previously absent destinations.
 It does not move, replace, or unlink the live configuration.
 
-Verify a backup's copied files before proceeding:
+Linked configuration is copied only when it matches the corresponding source
+under the known legacy checkout. The default legacy root is the current checkout.
+If the original configuration lives in `~/dotfiles` and this source checkout is
+elsewhere, select that root explicitly:
 
 ```sh
-backup=THE_PRINTED_BACKUP_DIRECTORY
-cd "$backup/files"
-shasum -a 256 -c ../files.sha256
+./scripts/bootstrap/backup.sh --create --legacy-root "$HOME/dotfiles"
 ```
+
+Unknown links, nested legacy-source links, and unsafe parents cause a refusal
+before their contents are read. Each copied file is checked against its source
+hash before the backup is reported as complete. Review the reported directory's
+copied files, link targets, and inventory before proceeding with the handoff.
 
 This is a backup of the declared migration scope, not a full home-directory
 backup. It does not read Fish universal variables, traverse plugin checkouts, or

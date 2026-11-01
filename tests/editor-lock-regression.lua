@@ -37,8 +37,13 @@ local ok, err = xpcall(function()
     return system(command, options)
   end
   package.loaded["config.treesitter"] = { "lua" }
-  local completed = function() return { wait = function() end } end
-  package.loaded["nvim-treesitter"] = { install = completed, update = completed }
+  local function completed(stage)
+    return { wait = function() return vim.env.DOTFILES_PARSER_FAILURE ~= stage end }
+  end
+  package.loaded["nvim-treesitter"] = {
+    install = function() return completed("install") end,
+    update = function() return completed("update") end,
+  }
   vim.g.dotfiles_expected_lock = original
   dofile(vim.env.DOTFILES_EDITOR_INSTALLER)
 end, debug.traceback)

@@ -5,10 +5,8 @@ primarily for Apple Silicon. Fish, Alacritty, tmux, Neovim, and Starship
 provide the terminal workflow; Go and Rust are the development
 toolchains.
 
-The bootstrap and configuration have passed isolated tests on the
-reference MacBook. Full provisioning on clean macOS, live
-language-server attachment, and visual acceptance checks remain to be
-completed.
+Keep the reference Mac's original configuration intact until the new
+Mac passes provisioning and the interactive acceptance checks.
 
 ## Set up a new Mac
 
@@ -178,16 +176,10 @@ caches:
 tests/run-isolated.sh --download-chezmoi --smoke
 ```
 
-The download option obtains a pinned, checksum-verified test executable
-and removes it afterward. Use `--chezmoi /path/to/chezmoi` instead to
-avoid downloading. The harness isolates source, HOME, destination,
-cache, and state; provisioning hooks are disabled and installers are
-blocked. tmux runs on a private socket with session restore/save
-disabled.
-
-These checks cover configuration deployment and application behavior.
-Full package installation, LSP attachment, fonts, clipboard integration,
-and session persistence still need acceptance testing on clean macOS.
+The download is checksum-verified and temporary. If chezmoi is already
+on PATH, run `tests/run-isolated.sh` to use it. See the
+[testing guide](docs/bootstrap.md#isolated-tests) for isolation details,
+cache requirements, and the separate clean-Mac acceptance checks.
 
 ## Further reading
 

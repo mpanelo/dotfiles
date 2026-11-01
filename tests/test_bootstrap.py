@@ -23,6 +23,17 @@ def declared_files():
             if line and not line.startswith("#")]
 
 
+def populate_fish_files(home):
+    paths = []
+    for relative, _source in declared_files():
+        if relative.startswith(".config/fish/") and relative.endswith(".fish"):
+            path = home / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("# managed fixture\n")
+            paths.append(path)
+    return paths
+
+
 class SafetyTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="dotfiles-test-")
@@ -106,6 +117,42 @@ class SafetyTests(unittest.TestCase):
     def test_runtime_and_state_symlinks_are_refused(self):
         (self.home / ".local").symlink_to(ROOT, target_is_directory=True)
         self.assertNotEqual(self.preflight().returncode, 0)
+
+    def test_tool_directory_links_are_refused(self):
+        outside = Path(self.tmp.name) / "outside"
+        outside.mkdir()
+        for relative in ("go/bin", ".cargo/bin", ".local/share/uv/tools/basedpyright", ".local/share/uv/tools/ruff"):
+            with self.subTest(relative=relative):
+                path = self.home / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.symlink_to(outside, target_is_directory=True)
+                result = self.preflight()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"Unsafe runtime directory: {relative}", result.stderr)
+                self.assertTrue(path.is_symlink())
+                self.assertEqual(list(outside.iterdir()), [])
+                path.unlink()
+
+    def test_fish_checks_only_owned_files(self):
+        declared = populate_fish_files(self.home)
+        owned = self.home / ".config/fish/functions/owned.fish"
+        owned.write_text("# owned plugin fixture\n")
+        unknown = owned.with_name("unrelated.fish")
+        unknown.write_text("synthetic private fixture; never read\n")
+        inventory = self.home / ".local/state/dotfiles/fish-plugin-files.sha256"
+        inventory.parent.mkdir(parents=True)
+        inventory.write_text("a" * 64 + "  .config/fish/functions/owned.fish\n")
+        checker = Path(self.tmp.name) / "fish"
+        log = Path(self.tmp.name) / "checked.txt"
+        checker.write_text('#!/bin/sh\nprintf "%s\\n" "$3" >> "$CHECK_LOG"\n')
+        checker.chmod(0o755)
+        self.env["CHECK_LOG"] = str(log)
+        code = 'source "$1"; check_fish_syntax "$2"'
+        result = subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS / "lib.sh"), str(checker)], env=self.env,
+                                text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(set(log.read_text().splitlines()), set(map(str, [*declared, owned])))
+        self.assertEqual(unknown.read_text(), "synthetic private fixture; never read\n")
 
     def test_legacy_tmux_config_is_refused(self):
         (self.home / ".tmux.conf").write_text("# preserve me\n")
@@ -197,10 +244,12 @@ class SafetyTests(unittest.TestCase):
         config = self.home / ".config"
         config.mkdir()
         source = Path(self.tmp.name) / "original-fish"
-        source.mkdir()
+        legacy = source
+        source = legacy / "fish"
+        source.mkdir(parents=True)
         (source / "config.fish").write_text("# original\n")
         (config / "fish").symlink_to(source, target_is_directory=True)
-        result = self.run_script("backup.sh", "--create")
+        result = self.run_script("backup.sh", "--create", "--legacy-root", str(legacy))
         self.assertEqual(result.returncode, 0, result.stderr)
         backup = Path(result.stdout.strip())
         self.assertEqual(backup.stat().st_mode & 0o777, 0o700)
@@ -208,6 +257,49 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(os.readlink(backup / "links/.config/fish"), str(source))
         self.assertEqual(os.readlink(config / "fish"), str(source))
         self.assertEqual((source / "config.fish").read_text(), "# original\n")
+
+    def test_backup_refuses_unrecognized_links(self):
+        source = Path(self.tmp.name) / "unrelated"
+        source.mkdir()
+        content = "synthetic private fixture; never copy\n"
+        (source / "config.fish").write_text(content)
+        config = self.home / ".config"
+        config.mkdir()
+        (config / "fish").symlink_to(source, target_is_directory=True)
+        result = self.run_script("backup.sh", "--create")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unrecognized link", result.stderr)
+        self.assertNotIn(content, result.stdout + result.stderr)
+        self.assertEqual((source / "config.fish").read_text(), content)
+        self.assertFalse(list((self.home / ".local/state/dotfiles/backups").glob("*/files/.config/fish/config.fish")))
+
+    def test_backup_preserves_file_link_metadata(self):
+        legacy = Path(self.tmp.name) / "legacy"
+        original = legacy / "tmux/tmux.conf"
+        original.parent.mkdir(parents=True)
+        original.write_text("# legacy tmux\n")
+        target = self.home / ".config/tmux/tmux.conf"
+        target.parent.mkdir(parents=True)
+        target.symlink_to(original)
+        result = self.run_script("backup.sh", "--create", "--legacy-root", str(legacy))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        backup = Path(result.stdout.strip())
+        self.assertEqual(os.readlink(backup / "links/.config/tmux/tmux.conf"), str(original))
+        self.assertEqual((backup / "files/.config/tmux/tmux.conf").read_text(), "# legacy tmux\n")
+        self.assertTrue(target.is_symlink())
+
+    @unittest.skipUnless(os.uname().sysname == "Darwin", "macOS launcher")
+    def test_launcher_refuses_linked_git_metadata(self):
+        checkout = self.home / ".local/share/chezmoi"
+        checkout.mkdir(parents=True)
+        unrelated = Path(self.tmp.name) / "unrelated-git"
+        unrelated.mkdir()
+        (checkout / ".git").symlink_to(unrelated, target_is_directory=True)
+        result = subprocess.run(["/bin/bash", str(ROOT / "install.sh"), "a" * 40], env=self.env,
+                                text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("symlinked Git directory", result.stderr)
+        self.assertEqual(list(unrelated.iterdir()), [])
 
     def test_plugin_checkout_is_repeatable_and_refuses_dirty_files(self):
         upstream = Path(self.tmp.name) / "upstream"
@@ -253,6 +345,39 @@ class SafetyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("local changes", result.stderr)
         self.assertEqual((target / "plugin.conf").read_text(), "local customization\n")
+
+
+class InstallerTests(unittest.TestCase):
+    setUp = SafetyTests.setUp
+
+    def test_verified_download_gates_execution(self):
+        root = Path(self.tmp.name)
+        marker = root / "executed"
+        payload = root / "installer-fixture"
+        payload.write_text('#!/bin/sh\nprintf "executed\\n" > "$EXECUTION_MARKER"\n')
+        manifest = root / "manifests/installers.tsv"
+        manifest.parent.mkdir()
+        bin_dir = root / "bin"
+        bin_dir.mkdir()
+        curl = bin_dir / "curl"
+        curl.write_text('#!/bin/sh\nset -eu\n[ "$1" = -q ]\nwhile [ "$1" != -o ]; do shift; done\ncp "$DOWNLOAD_PAYLOAD" "$2"\n')
+        curl.chmod(0o755)
+        self.env.update(PATH=str(bin_dir) + os.pathsep + self.env["PATH"],
+                        DOWNLOAD_PAYLOAD=str(payload), EXECUTION_MARKER=str(marker))
+        for valid in (False, True):
+            with self.subTest(valid=valid):
+                checksum = hashlib.sha256(payload.read_bytes()).hexdigest() if valid else "0" * 64
+                manifest.write_text(f"fixture https://example.invalid/pinned/installer {checksum}\n")
+                code = 'source "$1"; REPO_ROOT=$2; download_installer fixture "$2/downloaded"; /bin/sh "$2/downloaded"'
+                result = subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS / "lib.sh"), str(root)], env=self.env,
+                                        text=True, capture_output=True)
+                if valid:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertTrue(marker.exists())
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("checksum mismatch", result.stderr)
+                    self.assertFalse(marker.exists())
 
 
 class BlinkBuildTests(unittest.TestCase):
@@ -327,7 +452,7 @@ class BlinkBuildTests(unittest.TestCase):
 class EditorBootstrapTests(unittest.TestCase):
     setUp = SafetyTests.setUp
 
-    def prepare_editor(self, wrong_pin=False):
+    def prepare_editor(self, wrong_pin=False, parser_failure=""):
         executable = shutil.which("nvim")
         cached = Path.home() / ".local/share/nvim/lazy/lazy.nvim"
         if not executable or not (cached / ".git").is_dir():
@@ -337,7 +462,7 @@ class EditorBootstrapTests(unittest.TestCase):
         if actual != expected:
             self.skipTest("cached lazy.nvim is not the pinned revision")
         subprocess.run(["git", "-C", str(cached), "diff", "--quiet", "HEAD", "--", "lua"], check=True)
-        self.fixture = Path(self.tmp.name) / "editor"
+        self.fixture = Path(self.tmp.name) / ("editor-" + (parser_failure or "normal"))
         self.fixture.mkdir()
         shutil.copytree(cached / "lua", self.fixture / "lazy.nvim/lua", symlinks=True)
         upstream = self.fixture / "upstream"
@@ -351,7 +476,7 @@ class EditorBootstrapTests(unittest.TestCase):
         # branchless detached checkout from the failed clean-Mac bootstrap.
         code = 'source "$1"; sync_checkout "$2" "$3" "$4"'
         # sync_checkout only permits destinations under its disposable HOME.
-        self.plugin = self.home / "plugin"
+        self.plugin = self.home / ("plugin-" + (parser_failure or "normal"))
         subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS / "lib.sh"), str(self.plugin), str(upstream), pin], env=self.env, check=True)
         (self.fixture / "plugin").symlink_to(self.plugin, target_is_directory=True)
         lock = {"fixture": {"branch": "main", "commit": "0" * 40 if wrong_pin else pin}}
@@ -367,6 +492,7 @@ class EditorBootstrapTests(unittest.TestCase):
                    XDG_CACHE_HOME=str(self.home / ".cache"), GIT_ALLOW_PROTOCOL="file",
                    DOTFILES_EDITOR_FIXTURE=str(self.fixture), DOTFILES_REPO_ROOT=str(self.fixture),
                    DOTFILES_EDITOR_INSTALLER=str(SCRIPTS / "install-editor.lua"),
+                   DOTFILES_PARSER_FAILURE=parser_failure,
                    DOTFILES_EDITOR_TEST=str(ROOT / "tests/editor-lock-regression.lua"))
         return subprocess.run([executable, "--headless", "-u", "NONE", "-i", "NONE", "-n", "-c", 'lua dofile(vim.env.DOTFILES_EDITOR_TEST)'], env=env, text=True, capture_output=True, timeout=30)
 
@@ -382,6 +508,15 @@ class EditorBootstrapTests(unittest.TestCase):
         self.assertIn("Plugin differs from its pin", result.stderr)
         self.assertNotIn("DOTFILES_EDITOR_LOCK_OK", result.stdout + result.stderr)
         self.assertEqual(self.lockfile.read_bytes(), self.lock_bytes)
+
+    def test_parser_failures_stop_verification(self):
+        for stage, message in (("install", "installation"), ("update", "update")):
+            with self.subTest(stage=stage):
+                result = self.prepare_editor(parser_failure=stage)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"Tree-sitter parser {message} failed", result.stderr)
+                self.assertNotIn("DOTFILES_EDITOR_LOCK_OK", result.stdout + result.stderr)
+                self.assertEqual(self.lockfile.read_bytes(), self.lock_bytes)
 
 
 class TreeSitterTests(unittest.TestCase):
@@ -460,7 +595,7 @@ class TreeSitterTests(unittest.TestCase):
         self.assertEqual(self.target.read_text(), "local modification\n")
 
     def test_wrong_release_version_is_not_installed(self):
-        self.prepare_release(reported_version="0.26.9")
+        self.prepare_release(reported_version="0.26.80")
         result = self.install()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("version mismatch", result.stderr)
@@ -480,6 +615,7 @@ class WorkflowTests(unittest.TestCase):
         self.calls = self.root / "calls.log"
         self.packages = self.root / "packages.txt"
         self.packages.write_text("fish 4.9.3\n")
+        populate_fish_files(self.home)
         self.env.update(ACCOUNT_SHELL=str(self.account_shell), CALL_LOG=str(self.calls),
                         PACKAGE_FILE=str(self.packages), PRIVATE_SENTINEL="must-not-be-logged")
         commands = {
@@ -528,7 +664,6 @@ esac
         self.prepare_commands()
         registry = self.root / "shells"
         registry.write_text("/bin/zsh\n/bin/bash\n")
-        (self.home / ".config/fish").mkdir(parents=True)
         result = self.shell('begin_bootstrap_run; set_fish_login_shell "$BREW_PREFIX/bin/fish" "$3"; set_fish_login_shell "$BREW_PREFIX/bin/fish" "$3"; verify_fish_login_shell', registry)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.calls.read_text().splitlines(), ["sudo", "chsh"])
@@ -541,7 +676,6 @@ esac
         (self.bin / "chsh").write_text("#!/bin/sh\nexit 23\n")
         registry = self.root / "shells"
         registry.write_text("/bin/zsh\n")
-        (self.home / ".config/fish").mkdir(parents=True)
         result = self.shell('set_fish_login_shell "$BREW_PREFIX/bin/fish" "$3"', registry)
         self.assertEqual(result.returncode, 23, result.stderr)
         self.assertEqual(self.account_shell.read_text(), "/bin/zsh\n")
@@ -596,6 +730,18 @@ class AlacrittyTests(unittest.TestCase):
         code = 'source "$1/lib.sh"; source "$1/alacritty.sh"; REPO_ROOT=$2; BREW_PREFIX=$2/brew; install_alacritty'
         return subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS), str(self.root)],
                               env=self.env, text=True, capture_output=True)
+
+    def test_fingerprint_propagates_read_failures(self):
+        for command in ("find", "stat"):
+            with self.subTest(command=command):
+                failed = self.bin / command
+                failed.write_text("#!/bin/sh\nexit 37\n")
+                failed.chmod(0o755)
+                code = 'source "$1/lib.sh"; source "$1/alacritty.sh"; alacritty_fingerprint "$2"'
+                result = subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS), str(self.source)], env=self.env,
+                                        text=True, capture_output=True)
+                self.assertNotEqual(result.returncode, 0)
+                failed.unlink()
 
     def test_install_and_retry_preserve_bundle_and_skip_download(self):
         for _ in range(2):

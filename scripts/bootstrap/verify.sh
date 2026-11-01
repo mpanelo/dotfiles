@@ -67,7 +67,7 @@ for font in "$HOME/Library/Fonts/"*JetBrains*"Nerd"*.ttf; do
     [[ ! -f "$font" ]] || font_found=1
 done
 ((font_found)) || die 'JetBrainsMono Nerd Font was not found.'
-while IFS= read -r file; do fish --no-config --no-execute "$file"; done < <(find "$HOME/.config/fish" -name '*.fish' -type f)
+check_fish_syntax
 editor_check
 verify_fish_login_shell
 log 'Core checks passed. Complete the visual and interactive checks in docs/bootstrap.md.'

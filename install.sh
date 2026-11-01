@@ -13,6 +13,7 @@ checkout="$HOME/.local/share/chezmoi"
 for parent in "$HOME/.local" "$HOME/.local/share" "$checkout"; do
     [[ ! -L "$parent" ]] || { printf '%s\n' 'Refusing a symlinked checkout location.' >&2; exit 1; }
 done
+[[ ! -L "$checkout/.git" ]] || { printf '%s\n' 'Refusing a symlinked Git directory.' >&2; exit 1; }
 if [[ ! -e "$checkout" ]]; then
     for path in .config/fish .config/alacritty .config/nvim .config/tmux .config/starship.toml .tmux.conf; do
         [[ ! -e "$HOME/$path" && ! -L "$HOME/$path" ]] || {

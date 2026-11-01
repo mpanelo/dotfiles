@@ -34,7 +34,7 @@ fi
 if [[ ! -x "$BREW_PREFIX/bin/brew" ]]; then
     installer=$(mktemp -t dotfiles-homebrew)
     trap 'rm -f "$installer"' EXIT
-    curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$installer"
+    download_installer homebrew "$installer"
     run_logged homebrew-install /bin/bash "$installer"
     rm -f "$installer"
     trap - EXIT

@@ -1,10 +1,8 @@
 # Reproducible macOS development environment
 
-Status: core tooling agreed; repository implementation and isolated MacBook
-validation are complete. Clean-machine provisioning remains to be tested.
-See [bootstrap and validation](bootstrap.md) for the implementation and outstanding
-clean-Mac checks. No software installation or live configuration migration has
-been performed on the reference machine.
+This document records the agreed scope and migration design. Use the
+[README](../README.md) for setup, the [bootstrap runbook](bootstrap.md) for
+ownership and maintenance, and the [recovery guide](recovery.md) for handoff.
 
 The existing Mac is the compatibility reference. The new Mac Studio will be the
 first machine provisioned through the completed bootstrap. Preserve existing
@@ -44,11 +42,10 @@ where supported, PATH requirements, and verification. It does not mean manually
 typing installation commands on each machine. Neovim consumes the resulting
 executables and does not install language servers or external formatters.
 
-The following user-facing core tools are agreed. The installer assignments define
-the intended implementation; exact versions will be selected and validated when
-the manifests are implemented.
+The following core tools and installation owners are agreed. Exact tool versions
+and installer/download checksums live in the repository manifests.
 
-| Area | Core tooling | Proposed owner |
+| Area | Core tooling | Owner |
 | --- | --- | --- |
 | Provisioning | Homebrew, chezmoi | Official Homebrew installer; Homebrew installs chezmoi |
 | Terminal | Alacritty, Fish, tmux, Starship | Homebrew formulae; pinned official Alacritty DMG |
@@ -248,10 +245,10 @@ routine apply operation to update every package or plugin.
 
 | Stage | Work | Exit criteria |
 | --- | --- | --- |
-| 1 (complete) | Agree core and BasedPyright/Node ownership | fnm with no Node version; uv-isolated BasedPyright runtime; ssh-copy-id retained |
-| 2 (implemented) | Add source tree alongside the original layout | Existing live links remain valid; offline configuration/keymap comparisons |
-| 3 (implemented; installation untested) | Implement package/tool manifests and bootstrap | Script validation; predictable PATH; no Mason or unintended frontend dependencies |
-| 4 (isolated checks passed) | Exercise isolated deployment and conflict cases | Isolated deployment and app smoke tests pass; full installer interruption/recovery still needs a clean target |
+| 1 | Agree core and BasedPyright/Node ownership | fnm with no Node version; uv-isolated BasedPyright runtime; ssh-copy-id retained |
+| 2 | Add source tree alongside the original layout | Existing live links remain valid; offline configuration/keymap comparisons |
+| 3 | Implement package/tool manifests and bootstrap | Script validation; predictable PATH; no Mason or unintended frontend dependencies |
+| 4 | Exercise isolated deployment and conflict cases | Isolated deployment and app smoke checks; installer interruption/recovery on a clean target |
 | 5 | Provision Mac Studio | Complete terminal and editor checks on a clean machine |
 | 6 | Perform separately reviewed MacBook handoff | Preserved local state, no unexpected file changes, working rollback |
 | 7 | Retire obsolete layout and scripts | Both Macs use the new source and documented workflow |

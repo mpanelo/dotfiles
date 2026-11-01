@@ -41,6 +41,7 @@ install_toolchains() {
     mkdir -p "$GOBIN"
     while read -r tool module pin; do
         [[ -n "$tool" && "$tool" != \#* ]] || continue
+        safe_path "$HOME" "go/bin/$tool" || die "Unsafe Go tool destination: $tool"
         actual=''
         if [[ -f "$GOBIN/$tool" ]]; then
             [[ $("$BREW_PREFIX/bin/go" version -m "$GOBIN/$tool" | awk '$1 == "path" {print $2; exit}') == "$module" ]] ||
@@ -51,10 +52,14 @@ install_toolchains() {
     done < "$REPO_ROOT/manifests/go-tools.tsv"
 
     log "Ensuring rustup and Rust $rust_pin components"
+    safe_path "$HOME" '.cargo/bin/rustup' || die 'Unsafe rustup executable path.'
     if [[ ! -x "$HOME/.cargo/bin/rustup" ]]; then
+        [[ ! -e "$HOME/.cargo/bin/rustup" && ! -L "$HOME/.cargo/bin/rustup" ]] || die 'Existing rustup path is not executable; review it before installation.'
         installer=$(mktemp -t dotfiles-rustup)
-        curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs -o "$installer"
-        /bin/sh "$installer" -y --no-modify-path --default-toolchain none --profile minimal
+        download_installer "rustup-$(uname -m)" "$installer"
+        lipo -verify_arch "$(uname -m)" "$installer" || die 'rustup installer does not support the native architecture.'
+        chmod 700 "$installer"
+        "$installer" -y --no-modify-path --default-toolchain none --profile minimal
         rm -f "$installer"
     fi
     if ! rustup toolchain list | grep -q "^$rust_pin-"; then
@@ -72,6 +77,7 @@ install_toolchains() {
 
     log 'Ensuring uv-isolated BasedPyright/Node and Ruff (fnm installs no Node)'
     for tool in basedpyright ruff; do
+        safe_path "$HOME" ".local/share/uv/tools/$tool" || die "Unsafe uv tool environment: $tool"
         pin=$(version "$tool")
         actual=''
         if [[ -x "$UV_TOOL_DIR/$tool/bin/python" ]]; then

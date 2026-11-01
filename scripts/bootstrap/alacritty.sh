@@ -2,14 +2,19 @@
 # Sourced by reconciliation, preflight and verification; never installs on source.
 
 alacritty_fingerprint() (
-    local app=$1 file
+    local app=$1 file links files checksum mode
     [[ -d "$app" && ! -L "$app" ]] || return 1
     # Refuse links before reading files, including links to unrelated user data.
-    [[ -z $(find "$app" -type l -print -quit) ]] || return 1
+    links=$(find "$app" -type l -print -quit) || return 1
+    [[ -z "$links" ]] || return 1
     cd "$app" || return 1
+    files=$(find . -type f | LC_ALL=C sort) || return 1
     while IFS= read -r file; do
-        printf '%s  %s  %s\n' "$(sha_file "$file")" "$(stat -f '%Lp' "$file")" "$file"
-    done < <(find . -type f | LC_ALL=C sort) | shasum -a 256 | awk '{print $1}'
+        [[ -n "$file" ]] || continue
+        checksum=$(sha_file "$file") || return 1
+        mode=$(stat -f '%Lp' "$file") || return 1
+        printf '%s  %s  %s\n' "$checksum" "$mode" "$file"
+    done <<< "$files" | shasum -a 256 | awk '{print $1}'
 )
 
 alacritty_is_managed() {
@@ -70,7 +75,7 @@ install_alacritty() (
     else
         log "Installing Alacritty $pin from its checksum-verified upstream DMG"
         work=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-alacritty.XXXXXX")
-        curl --proto '=https' --tlsv1.2 -fsSL \
+        curl -q --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL \
             "https://github.com/alacritty/alacritty/releases/download/v$pin/Alacritty-v$pin.dmg" -o "$work/alacritty.dmg"
         [[ $(sha_file "$work/alacritty.dmg") == "$checksum" ]] || die 'Alacritty DMG checksum mismatch; nothing was installed.'
         mkdir "$work/mount"

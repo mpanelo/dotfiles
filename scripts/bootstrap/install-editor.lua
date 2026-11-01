@@ -16,9 +16,9 @@ local ok, err = xpcall(function()
   assert(result.code == 0, result.stderr)
   local treesitter = require("nvim-treesitter")
   local parsers = require("config.treesitter")
-  treesitter.install(parsers):wait(300000)
+  assert(treesitter.install(parsers):wait(300000), "Tree-sitter parser installation failed")
   -- A changed plugin pin can change parser revisions even when files exist.
-  treesitter.update(parsers):wait(300000)
+  assert(treesitter.update(parsers):wait(300000), "Tree-sitter parser update failed")
   dofile(vim.env.DOTFILES_REPO_ROOT .. "/scripts/bootstrap/verify-editor.lua")
 end, debug.traceback)
 if not ok then

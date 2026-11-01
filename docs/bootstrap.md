@@ -1,23 +1,13 @@
-# Bootstrap and validation
+# Bootstrap and maintenance
 
-The repository implementation has offline checks and a real chezmoi test harness.
-Real applies are confined to temporary destinations; no core package installation
-or live-home apply has been performed. Keep the original configuration directories until the Mac Studio is
-provisioned and the MacBook handoff is separately reviewed.
+Use the [README setup workflow](../README.md#set-up-a-new-mac) to provision a
+new Mac. This runbook explains conflict checks, isolated tests, ownership, and
+maintenance. Keep the original configuration until clean-Mac acceptance and a
+separately reviewed handoff.
 
-## Commands available now
+## Installation conflict checks
 
-From the checkout:
-
-```sh
-./bootstrap.sh --check
-python3 tests/test_bootstrap.py
-shellcheck -x bootstrap.sh install.sh scripts/bootstrap/*.sh
-tests/run-isolated.sh --download-chezmoi
-tests/run-isolated.sh --download-chezmoi --smoke
-```
-
-`--check` reports whether the installation has any blocking configuration or
+`./bootstrap.sh --check` reports whether installation has any blocking configuration or
 path conflicts, without installing software or changing destination files. It
 checks platform/default directory settings, source inventory coverage, existing
 file contents, symlinks/runtime directories, a shadowing `~/.tmux.conf`, and
@@ -35,7 +25,11 @@ Existing directory/file symlinks or divergent configurations cause a failure.
 That refusal is expected on the reference Mac; it is not an instruction to remove
 those files.
 
-The offline Python suite never invokes an installer or chezmoi apply.
+## Isolated tests
+
+Run the test commands in the [README](../README.md#test-without-changing-live-configuration).
+The offline Python suite uses fake installers and temporary fixtures; it never
+installs real software or applies chezmoi to a live home directory.
 `tests/render-templates.go` additionally checks template syntax and architecture
 selection using the standard Go template engine. The integration harness uses
 real chezmoi init, dry-run, apply and diff against temporary source/configuration/
@@ -43,8 +37,8 @@ destination/cache/state directories. It never applies to your live home.
 
 `--download-chezmoi` explicitly downloads a pinned official Apple Silicon release,
 verifies its SHA-256, and removes the temporary executable afterward. It does not
-install into Homebrew or HOME. To use an existing executable instead, pass
-`--chezmoi /path/to/chezmoi`. The harness itself never downloads software.
+install into Homebrew or HOME. Run `tests/run-isolated.sh` to use an existing
+chezmoi on PATH. The Python deployment harness itself never downloads software.
 
 `--smoke` additionally starts existing Fish, tmux and Neovim binaries against the
 temporary configuration. It uses independent copies of cached pinned plugins and
@@ -66,27 +60,7 @@ Some execution sandboxes block tmux's private Unix socket. Run the reviewed
 harness with permission to create that socket; do not connect it to a live tmux
 server or weaken the configuration-isolation checks.
 
-## Provisioning a new Mac
-
-After this implementation has been reviewed and published at an explicit commit,
-the standalone entry point is:
-
-```sh
-revision=REVIEWED_40_CHARACTER_COMMIT
-/bin/bash -c "$(curl -fsSL "https://raw.githubusercontent.com/mpanelo/dotfiles/$revision/install.sh")" -- "$revision"
-```
-
-Use the same real commit in the download URL and argument. This command is not
-available remotely until that commit has been published; the agent does not push
-it automatically. Review the downloaded script before execution if desired.
-
-The launcher obtains the source under `~/.local/share/chezmoi` at that commit. If
-Command Line Tools need installation, complete the system dialog and rerun the
-same command. Administrator authentication for Homebrew may also be required.
-
-With an already reviewed local checkout and Command Line Tools, the provisioning
-entry point is `./bootstrap.sh` without arguments. That command installs software
-and applies configuration; it is not a dry run.
+## Provisioning stages
 
 Bootstrap does the following:
 
@@ -105,7 +79,8 @@ extension rather than a guessed migration. Fish is registered in `/etc/shells`
 only if absent, then `chsh` changes the current account's login shell to the
 native Homebrew Fish path. These steps can request administrator/account
 authentication and are idempotent. Fish binary and configuration syntax checks
-run first. New login sessions use Fish; Terminal.app must use its default login
+run first, limited to declared configuration and recorded plugin files; unrelated
+Fish functions are not inspected. New login sessions use Fish; Terminal.app must use its default login
 shell setting if it previously had an explicit zsh command. Alacritty already
 launches Fish directly. This does not change other accounts, macOS preferences,
 Gatekeeper settings, or stored credentials.
@@ -150,6 +125,14 @@ The root `Brewfile` is the core package declaration. `macos/brew/Brewfile` and
 component setup scripts remain legacy compatibility files while the old layout
 is linked into the reference machine. Do not run the legacy installers as part
 of the new bootstrap.
+
+`manifests/installers.tsv` pins the Homebrew installer to an immutable Git
+revision and rustup-init to official versioned macOS binaries. Each download is
+SHA-256-verified before execution; Rust's initializer is also checked for the
+native architecture. These bootstrap pins do not freeze Homebrew's package
+catalog. Update installer URLs and checksums deliberately after reviewing the
+upstream source/release. Downloads ignore personal curl configuration and only
+allow HTTPS, including redirects.
 
 Alacritty is the application exception to Homebrew ownership. Its cask is
 disabled for failing Gatekeeper checks. Bootstrap downloads the official GitHub

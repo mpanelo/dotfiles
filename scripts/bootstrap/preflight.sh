@@ -78,7 +78,7 @@ report "$status" "Configuration files: $checked checked; $absent absent, $matchi
 
 before_runtime=$conflicts
 runtime_count=0
-for relative in .local/bin .local/share/uv .local/share/nvim .local/share/dotfiles .cargo .rustup .config/tmux/plugins .config/chezmoi Applications .terminfo; do
+for relative in .local/bin .local/share/uv .local/share/uv/tools/basedpyright .local/share/uv/tools/ruff .local/share/nvim .local/share/dotfiles go/bin .cargo/bin .rustup .config/tmux/plugins .config/chezmoi Applications .terminfo; do
     runtime_count=$((runtime_count + 1))
     safe_path "$destination" "$relative" || conflict "Unsafe runtime directory: $relative"
     [[ ! -e "$destination/$relative" || -d "$destination/$relative" ]] || conflict "Runtime path is not a directory: $relative"

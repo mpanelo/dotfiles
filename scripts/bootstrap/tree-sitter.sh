@@ -10,7 +10,7 @@ tree_sitter_asset() {
 }
 
 tree_sitter_is_current() {
-    local pin archive binary_hash recorded_pin recorded_archive recorded_hash
+    local pin archive binary_hash recorded_pin recorded_archive recorded_hash actual
     safe_path "$HOME" '.local/bin/tree-sitter' || return 1
     safe_path "$HOME" '.local/state/dotfiles/tree-sitter.release' || return 1
     [[ -f "$HOME/.local/bin/tree-sitter" && -x "$HOME/.local/bin/tree-sitter" && -f "$STATE_DIR/tree-sitter.release" ]] || return 1
@@ -20,7 +20,8 @@ tree_sitter_is_current() {
     [[ "$recorded_pin" == "$pin" && "$recorded_archive" == "$archive" ]] || return 1
     binary_hash=$(sha_file "$HOME/.local/bin/tree-sitter") || return 1
     [[ "$binary_hash" == "$recorded_hash" ]] || return 1
-    [[ $("$HOME/.local/bin/tree-sitter" --version) == "tree-sitter $pin"* ]]
+    actual=$("$HOME/.local/bin/tree-sitter" --version) || return
+    [[ "$actual" == "tree-sitter $pin" || "$actual" == "tree-sitter $pin "* ]]
 }
 
 install_tree_sitter() (
@@ -59,13 +60,14 @@ install_tree_sitter() (
     trap 'exit 143' TERM HUP
     log "Installing Tree-sitter CLI $pin from its checksum-verified upstream binary"
     work=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-tree-sitter.XXXXXX")
-    curl --proto '=https' --tlsv1.2 -fsSL \
+    curl -q --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL \
         "https://github.com/tree-sitter/tree-sitter/releases/download/v$pin/tree-sitter-$asset.gz" -o "$work/tree-sitter.gz"
     [[ $(sha_file "$work/tree-sitter.gz") == "$archive" ]] || die 'Tree-sitter archive checksum mismatch; nothing was installed.'
     gzip -dc "$work/tree-sitter.gz" > "$work/tree-sitter"
     lipo -verify_arch "$(uname -m)" "$work/tree-sitter" || die 'Tree-sitter binary does not support the native architecture.'
     chmod 755 "$work/tree-sitter"
-    [[ $("$work/tree-sitter" --version) == "tree-sitter $pin"* ]] || die 'Tree-sitter release version mismatch.'
+    actual=$("$work/tree-sitter" --version)
+    [[ "$actual" == "tree-sitter $pin" || "$actual" == "tree-sitter $pin "* ]] || die 'Tree-sitter release version mismatch.'
     desired=$(sha_file "$work/tree-sitter")
     if [[ -n "$original" && "$original" != "$desired" ]] && ((!owned)); then
         die 'Existing Tree-sitter executable is unowned or modified; left intact.'
