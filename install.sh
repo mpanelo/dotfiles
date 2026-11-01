@@ -1,12 +1,13 @@
 #!/bin/bash
-# Standalone entry point for a new Mac. Fetch this file from the same reviewed
-# commit supplied as its argument. No Homebrew, Python, Fish, or chezmoi required.
+# Standalone entry point for a new Mac. Defaults to main; an explicit commit
+# remains optional. No Homebrew, Python, Fish, or chezmoi required.
 set -euo pipefail
-if [[ $# != 1 || ! $1 =~ ^[a-f0-9]{40}$ ]]; then
-    printf '%s\n' 'Usage: install.sh REVIEWED_40_CHARACTER_COMMIT' >&2
+if (( $# > 1 )) || [[ $# == 1 && ! $1 =~ ^[a-f0-9]{40}$ ]]; then
+    printf '%s\n' 'Usage: install.sh [40_CHARACTER_COMMIT] (default: main)' >&2
     exit 2
 fi
-revision=$1
+revision=${1:-}
+repository=https://github.com/mpanelo/dotfiles.git
 [[ $(uname -s) == Darwin && $EUID != 0 ]] || { printf '%s\n' 'Use a normal macOS account.' >&2; exit 1; }
 [[ ${XDG_CONFIG_HOME:-$HOME/.config} == "$HOME/.config" ]] || { printf '%s\n' 'Custom XDG_CONFIG_HOME requires a reviewed setup.' >&2; exit 1; }
 checkout="$HOME/.local/share/chezmoi"
@@ -27,28 +28,41 @@ if ! xcode-select -p >/dev/null 2>&1; then
     printf '%s\n' 'Finish the Command Line Tools dialog, then rerun this same command.' >&2
     exit 1
 fi
-needs_fetch=0
+head=''
 if [[ -e "$checkout" ]]; then
     [[ -d "$checkout/.git" ]] || { printf '%s\n' 'Checkout path already exists and is not a Git repository.' >&2; exit 1; }
-    [[ $(git -C "$checkout" remote get-url origin) == https://github.com/mpanelo/dotfiles.git ]] || {
+    [[ $(git -C "$checkout" remote get-url origin) == "$repository" ]] || {
         printf '%s\n' 'Existing checkout has an unexpected origin; review it first.' >&2; exit 1
     }
     head=$(git -C "$checkout" rev-parse --verify HEAD 2>/dev/null || true)
-    [[ -z "$head" || "$head" == "$revision" ]] || {
+    [[ -z "$revision" || -z "$head" || "$head" == "$revision" ]] || {
         printf '%s\n' 'Existing checkout is at a different revision. Review it; the installer will not reset it.' >&2
         exit 1
     }
     [[ -z $(git -C "$checkout" status --porcelain) ]] || {
         printf '%s\n' 'Existing checkout has local changes; review them first.' >&2; exit 1
     }
-    [[ -n "$head" ]] || needs_fetch=1
-else
+    # Resume the selected snapshot even if main has advanced since a failed run.
+    [[ -n "$revision" ]] || revision=$head
+fi
+if [[ -z "$revision" ]]; then
+    remote=$(git ls-remote --exit-code "$repository" refs/heads/main) || {
+        printf '%s\n' 'Could not resolve main; nothing was installed.' >&2
+        exit 1
+    }
+    [[ "$remote" =~ ^([a-f0-9]{40})[[:space:]]+refs/heads/main$ ]] || {
+        printf '%s\n' 'Unexpected main revision; nothing was installed.' >&2
+        exit 1
+    }
+    revision=${BASH_REMATCH[1]}
+fi
+printf 'Using dotfiles revision %s\n' "$revision"
+if [[ ! -e "$checkout" ]]; then
     mkdir -p "$checkout"
     git -C "$checkout" init --quiet
-    git -C "$checkout" remote add origin https://github.com/mpanelo/dotfiles.git
-    needs_fetch=1
+    git -C "$checkout" remote add origin "$repository"
 fi
-if ((needs_fetch)); then
+if [[ -z ${head:-} ]]; then
     git -C "$checkout" fetch --quiet --depth 1 origin "$revision"
     git -C "$checkout" checkout --quiet --detach "$revision"
 fi
