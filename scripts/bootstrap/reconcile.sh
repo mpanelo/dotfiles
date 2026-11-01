@@ -140,7 +140,7 @@ install_fish_plugins() {
 }
 
 install_plugins() {
-    local name url commit before after fingerprint previous='' missing=0
+    local name url commit branch before after fingerprint previous='' missing=0
     log 'Reconciling pinned Fish and tmux plugins'
     install_fish_plugins
     while read -r name url commit; do
@@ -154,7 +154,8 @@ install_plugins() {
     while read -r name url; do
         [[ -n "$name" && "$name" != \#* ]] || continue
         commit=$(jq -er --arg name "$name" '.[$name].commit' "$lock")
-        sync_checkout "$HOME/.local/share/nvim/lazy/$name" "$url" "$commit"
+        branch=$(jq -er --arg name "$name" '.[$name].branch' "$lock")
+        sync_checkout "$HOME/.local/share/nvim/lazy/$name" "$url" "$commit" "$branch"
     done < "$REPO_ROOT/manifests/nvim-plugins.tsv"
     fingerprint=$(cat "$lock" "$REPO_ROOT/manifests/versions.json" \
         "$HOME/.config/nvim/lua/config/treesitter.lua" "$REPO_ROOT/scripts/bootstrap/install-editor.lua" | shasum -a 256 | awk '{print $1}')

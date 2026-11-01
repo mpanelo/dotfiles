@@ -112,6 +112,44 @@ class SafetyTests(unittest.TestCase):
         self.assertNotEqual(self.preflight().returncode, 0)
         self.assertEqual((self.home / ".tmux.conf").read_text(), "# preserve me\n")
 
+    def test_truncated_editor_lock_is_backed_up_and_repaired_idempotently(self):
+        target = self.home / ".config/nvim/lazy-lock.json"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b"{\n")
+        result = self.run_script("repair-editor-lock.sh")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(target.read_bytes(), (ROOT / "home/dot_config/nvim/lazy-lock.json").read_bytes())
+        backups = list((self.home / ".local/state/dotfiles/backups").glob("editor-lock.*/lazy-lock.json"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_bytes(), b"{\n")
+        self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
+        self.assertEqual(backups[0].parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(self.run_script("repair-editor-lock.sh").returncode, 0)
+        self.assertEqual(len(list(backups[0].parent.parent.iterdir())), 1)
+
+    def test_lock_repair_preserves_divergent_files_and_symlinks(self):
+        target = self.home / ".config/nvim/lazy-lock.json"
+        target.parent.mkdir(parents=True)
+        for content in (b'{"custom": {"commit": "keep"}}\n', b"{\n  \"partially edited\": "):
+            target.write_bytes(content)
+            result = self.run_script("repair-editor-lock.sh")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(target.read_bytes(), content)
+        target.unlink()
+        original = self.home / "original-lock"
+        original.write_bytes(b"{\n")
+        target.symlink_to(original)
+        self.assertNotEqual(self.run_script("repair-editor-lock.sh").returncode, 0)
+        self.assertTrue(target.is_symlink())
+        self.assertEqual(original.read_bytes(), b"{\n")
+
+    def test_empty_editor_lock_can_be_repaired(self):
+        target = self.home / ".config/nvim/lazy-lock.json"
+        target.parent.mkdir(parents=True)
+        target.touch()
+        self.assertEqual(self.run_script("repair-editor-lock.sh").returncode, 0)
+        self.assertEqual(target.read_bytes(), (ROOT / "home/dot_config/nvim/lazy-lock.json").read_bytes())
+
     def test_recorded_ownership_accepts_updates_but_detects_local_edits(self):
         # Simulate a previous successful apply at an older source revision.
         baseline = self.home / ".local/state/dotfiles/managed.sha256"
@@ -186,20 +224,95 @@ class SafetyTests(unittest.TestCase):
         pin = git("rev-parse", "HEAD")
         target = self.home / ".local/share/dotfiles/plugin-fixture"
 
-        def sync():
-            return subprocess.run(["/bin/bash", "-c", 'source "$1"; sync_checkout "$2" "$3" "$4"',
-                                   "fixture", str(SCRIPTS / "lib.sh"), str(target), str(upstream), pin],
+        def sync(branch=""):
+            return subprocess.run(["/bin/bash", "-c", 'source "$1"; sync_checkout "$2" "$3" "$4" "$5"',
+                                   "fixture", str(SCRIPTS / "lib.sh"), str(target), str(upstream), pin, branch],
                                   env=self.env, text=True, capture_output=True)
 
         for _ in range(2):
             result = sync()
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual((target / "plugin.conf").read_text(), "first version\n")
+        # A retry at an unchanged pin must also repair missing branch metadata.
+        result = sync("main")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        ref = subprocess.check_output(["git", "-C", str(target), "symbolic-ref", "refs/remotes/origin/HEAD"], env=self.env, text=True).strip()
+        self.assertEqual(ref, "refs/remotes/origin/main")
+        self.assertEqual(subprocess.check_output(["git", "-C", str(target), "rev-parse", ref], env=self.env, text=True).strip(), pin)
+        (upstream / "plugin.conf").write_text("later upstream version\n")
+        git("add", "plugin.conf")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "later fixture")
+        later = git("rev-parse", "HEAD")
+        subprocess.run(["git", "-C", str(target), "fetch", "--quiet", "origin", later], env=self.env, check=True)
+        subprocess.run(["git", "-C", str(target), "update-ref", ref, later], env=self.env, check=True)
+        self.assertEqual(sync("main").returncode, 0)
+        self.assertEqual(subprocess.check_output(["git", "-C", str(target), "rev-parse", ref], env=self.env, text=True).strip(), later)
+        self.assertEqual(subprocess.check_output(["git", "-C", str(target), "rev-parse", "HEAD"], env=self.env, text=True).strip(), pin)
         (target / "plugin.conf").write_text("local customization\n")
         result = sync()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("local changes", result.stderr)
         self.assertEqual((target / "plugin.conf").read_text(), "local customization\n")
+
+
+class EditorBootstrapTests(unittest.TestCase):
+    setUp = SafetyTests.setUp
+
+    def prepare_editor(self, wrong_pin=False):
+        executable = shutil.which("nvim")
+        cached = Path.home() / ".local/share/nvim/lazy/lazy.nvim"
+        if not executable or not (cached / ".git").is_dir():
+            self.skipTest("requires an existing Neovim and pinned lazy.nvim cache; no download is attempted")
+        expected = json.loads((ROOT / "home/dot_config/nvim/lazy-lock.json").read_text())["lazy.nvim"]["commit"]
+        actual = subprocess.check_output(["git", "-C", str(cached), "rev-parse", "HEAD"], text=True).strip()
+        if actual != expected:
+            self.skipTest("cached lazy.nvim is not the pinned revision")
+        subprocess.run(["git", "-C", str(cached), "diff", "--quiet", "HEAD", "--", "lua"], check=True)
+        self.fixture = Path(self.tmp.name) / "editor"
+        self.fixture.mkdir()
+        shutil.copytree(cached / "lua", self.fixture / "lazy.nvim/lua", symlinks=True)
+        upstream = self.fixture / "upstream"
+        upstream.mkdir()
+        subprocess.run(["git", "-C", str(upstream), "init", "--quiet"], env=self.env, check=True)
+        (upstream / "fixture.txt").write_text("pinned plugin fixture\n")
+        subprocess.run(["git", "-C", str(upstream), "add", "fixture.txt"], env=self.env, check=True)
+        subprocess.run(["git", "-C", str(upstream), "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture"], env=self.env, check=True)
+        pin = subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"], env=self.env, text=True).strip()
+        # Use the original three-argument seeding shape to reproduce the exact
+        # branchless detached checkout from the failed clean-Mac bootstrap.
+        code = 'source "$1"; sync_checkout "$2" "$3" "$4"'
+        # sync_checkout only permits destinations under its disposable HOME.
+        self.plugin = self.home / "plugin"
+        subprocess.run(["/bin/bash", "-c", code, "fixture", str(SCRIPTS / "lib.sh"), str(self.plugin), str(upstream), pin], env=self.env, check=True)
+        (self.fixture / "plugin").symlink_to(self.plugin, target_is_directory=True)
+        lock = {"fixture": {"branch": "main", "commit": "0" * 40 if wrong_pin else pin}}
+        self.lockfile = self.fixture / "lazy-lock.json"
+        self.lockfile.write_text(json.dumps(lock) + "\n")
+        self.lock_bytes = self.lockfile.read_bytes()
+        verify = self.fixture / "scripts/bootstrap/verify-editor.lua"
+        verify.parent.mkdir(parents=True)
+        verify.write_text('local f = assert(io.open(vim.env.DOTFILES_EDITOR_FIXTURE .. "/lazy-lock.json", "rb")); local bytes = f:read("*a"); f:close(); assert(bytes == vim.g.dotfiles_expected_lock, "lockfile was modified"); print("DOTFILES_EDITOR_LOCK_OK")\n')
+        env = dict(self.env, XDG_CONFIG_HOME=str(self.home / ".config"),
+                   XDG_DATA_HOME=str(self.home / ".local/share"),
+                   XDG_STATE_HOME=str(self.home / ".local/state"),
+                   XDG_CACHE_HOME=str(self.home / ".cache"), GIT_ALLOW_PROTOCOL="file",
+                   DOTFILES_EDITOR_FIXTURE=str(self.fixture), DOTFILES_REPO_ROOT=str(self.fixture),
+                   DOTFILES_EDITOR_INSTALLER=str(SCRIPTS / "install-editor.lua"),
+                   DOTFILES_EDITOR_TEST=str(ROOT / "tests/editor-lock-regression.lua"))
+        return subprocess.run([executable, "--headless", "-u", "NONE", "-i", "NONE", "-n", "-c", 'lua dofile(vim.env.DOTFILES_EDITOR_TEST)'], env=env, text=True, capture_output=True, timeout=30)
+
+    def test_seeded_plugins_build_without_lazy_restore_or_lockfile_writes(self):
+        result = self.prepare_editor()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("DOTFILES_EDITOR_LOCK_OK", result.stdout + result.stderr)
+        self.assertEqual(self.lockfile.read_bytes(), self.lock_bytes)
+
+    def test_wrong_plugin_revision_stops_before_builds_and_preserves_lock(self):
+        result = self.prepare_editor(wrong_pin=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Plugin differs from its pin", result.stderr)
+        self.assertNotIn("DOTFILES_EDITOR_LOCK_OK", result.stdout + result.stderr)
+        self.assertEqual(self.lockfile.read_bytes(), self.lock_bytes)
 
 
 class TreeSitterTests(unittest.TestCase):

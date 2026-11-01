@@ -16,6 +16,28 @@ bootstrap. Files already identical to the desired source are safe to adopt.
 Missing tools and artifacts are rechecked rather than trusting completion stamps.
 Review any genuinely divergent file; do not blindly rerun with overwrite flags.
 
+### Recovery from the lazy.nvim lock assertion
+
+An earlier bootstrap seeded detached plugin commits without branch metadata,
+then called `Lazy restore`. lazy.nvim expected a branch and could assert after
+opening the deployed lockfile for writing. The current bootstrap backfills that
+metadata and validates the seeded commits without calling restore.
+
+After pulling the fix, run:
+
+```sh
+./scripts/bootstrap/repair-editor-lock.sh
+./bootstrap.sh
+```
+
+The repair command only replaces an empty deployed lockfile or the exact
+`{` plus newline fragment produced by this failure. It first preserves the
+damaged file in a private `~/.local/state/dotfiles/backups/editor-lock.*`
+directory, then restores the repository's lockfile. Matching files are a no-op;
+other differing files and symlinks are refused for manual comparison. It does
+not reset plugin repositories, discard valid lockfile changes, or apply other
+configuration. A clean-machine reset is unnecessary to resume this failure.
+
 ## Failed provisioning, cleanup, and a truly fresh target
 
 Bootstrap is staged, not transactional. A failed `brew bundle` can leave

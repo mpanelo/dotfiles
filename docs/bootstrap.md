@@ -214,6 +214,12 @@ modified Fish plugin files cause a refusal rather than a forced reset. Routine
 bootstrap restores pins; it does not run `Lazy sync`, update plugin revisions,
 uninstall packages, or clean up unrelated files.
 
+Neovim repositories are checked out at the lockfile commits. Missing remote
+branch metadata is seeded from each lockfile branch, including on retries at an
+unchanged commit. Native setup verifies those Git commits before building; it
+does not call `Lazy restore` or rewrite the lockfile. Existing upstream refs are
+preserved. See the recovery guide if a prior run left a truncated lockfile.
+
 ## Remaining clean-Mac checks
 
 Before treating the setup as production-ready, validate full provisioning on a

@@ -66,20 +66,34 @@ desired_hash() {
 
 # Installs/checks a repository-owned plugin checkout without discarding changes.
 sync_checkout() {
-    local target=$1 url=$2 commit=$3 head
+    local target=$1 url=$2 commit=$3 branch=${4:-} head=''
     [[ "$commit" =~ ^[a-f0-9]{40}$ ]] || die 'Plugin references must be full commit IDs.'
+    if [[ -n "$branch" ]]; then
+        git check-ref-format "refs/heads/$branch" >/dev/null || die 'Invalid plugin branch.'
+    fi
     safe_path "$HOME" "${target#"$HOME"/}" || die "Unsafe plugin destination: $target"
     if [[ -e "$target" ]]; then
         [[ -d "$target/.git" && ! -L "$target/.git" ]] || die "Not a managed Git checkout: $target"
         [[ $(git -C "$target" remote get-url origin) == "$url" ]] || die "Unexpected plugin origin: $target"
         [[ -z $(git -C "$target" status --porcelain) ]] || die "Plugin has local changes: $target"
         head=$(git -C "$target" rev-parse --verify HEAD 2>/dev/null || true)
-        [[ "$head" != "$commit" ]] || return 0
     else
         mkdir -p "$target"
         git -C "$target" init --quiet
         git -C "$target" remote add origin "$url"
     fi
-    git -C "$target" fetch --quiet --depth 1 origin "$commit"
-    git -C "$target" checkout --quiet --detach "$commit"
+    if [[ "$head" != "$commit" ]]; then
+        git -C "$target" fetch --quiet --depth 1 origin "$commit"
+        git -C "$target" checkout --quiet --detach "$commit"
+    fi
+    if [[ -n "$branch" ]]; then
+        # lazy.nvim needs a branch even when HEAD is detached at a lockfile pin.
+        # Backfill only missing metadata; retain refs from later upstream fetches.
+        if ! git -C "$target" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            git -C "$target" update-ref "refs/remotes/origin/$branch" "$commit"
+        fi
+        if ! git -C "$target" symbolic-ref --quiet refs/remotes/origin/HEAD >/dev/null; then
+            git -C "$target" symbolic-ref refs/remotes/origin/HEAD "refs/remotes/origin/$branch"
+        fi
+    fi
 }
