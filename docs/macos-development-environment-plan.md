@@ -51,9 +51,10 @@ Exclusion never means uninstalling existing software.
 4. Validate the Studio interactively, then perform a separately reviewed MacBook
    handoff. Retire legacy directories only after both Macs use the new layout.
 
-The new source lives in `home/`, selected by `.chezmoiroot`. Deploy regular files;
+The source lives in `home/`, selected by `.chezmoiroot`. Deploy regular files;
 leave histories, credentials, caches, session data, and plugin checkouts outside
-Git. Preserve old source directories and live links until the handoff.
+Git. The retired component directories and installers are removed; preserve an
+older checkout separately while any Mac still depends on its legacy links.
 
 Bootstrap can resume partial installation but cannot undo every installer change.
 Unknown files, local edits, links, and unmanaged apps/fonts require review.

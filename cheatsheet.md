@@ -62,6 +62,27 @@ Execute one normal mode command before returning to insert mode.
 `grr`, `gri` and `gd` map to Telescope commands. You can send the results to 
 Quickfix by using `<C-q>`. Go back to Telescope `:Telescope resume`.
 
+## Troubleshooting gopls
+
+In a Go buffer, check LSP health, the executable, and the attached workspace:
+
+```vim
+:checkhealth vim.lsp
+:echo exepath('gopls')
+:lua vim.print(vim.tbl_map(function(c) return { name = c.name, root_dir = c.root_dir } end, vim.lsp.get_clients({ bufnr = 0 })))
+```
+
+An empty executable path means `gopls` is missing from Neovim's PATH. For a wrong
+or overly broad workspace, check `go env GOMOD GOWORK` and the configured
+[root markers](home/dot_config/nvim/lsp/gopls.lua). Multi-module projects may
+need a `go.work` file; see the [gopls workspace guide](https://go.dev/gopls/workspace).
+
+For debugging, enable `:lua vim.lsp.log.set_level("debug")`, restart with
+`:lsp restart gopls`, and reproduce the issue. Find the log with
+`:lua print(vim.lsp.log.get_filename())`; restore log level `"warn"` afterward.
+See the [settings](https://go.dev/gopls/settings) and
+[troubleshooting](https://go.dev/gopls/troubleshooting) references for tuning.
+
 ## Telescope
 
 ### fzf-native

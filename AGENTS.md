@@ -21,11 +21,10 @@ keybindings, and plugin functionality when changing how they are installed.
 
 - `.chezmoiroot` selects `home/` as the managed source state. Runtime installers,
   inventories, and verification live under `scripts/bootstrap/` and `manifests/`.
-- The root `Brewfile` declares core Homebrew packages. The legacy component
-  directories and `macos/brew/Brewfile` are not the new provisioning entry point.
-- The original `fish/`, `alacritty/`, `tmux/`, and `nvim/` directories can still
-  be targets of live symlinks on the reference Mac. Preserve them until an
-  explicitly reviewed handoff; do not silently redirect or replace those links.
+- The root `Brewfile` declares core Homebrew packages. Configuration lives only
+  under `home/`; do not restore the retired component installers or duplicates.
+- Before updating an older Mac, complete its reviewed chezmoi handoff. Preserve
+  legacy link targets and private backups outside the current source checkout.
 - Update `manifests/config-files.tsv` whenever managed configuration files are
   added, removed, or renamed. Conflict detection and backups depend on it.
 - Keep plugin revisions consistent with the committed lockfiles and manifests.

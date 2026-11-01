@@ -39,11 +39,12 @@ Before an existing-Mac handoff, run:
 ./scripts/bootstrap/backup.sh --create
 ```
 
-If legacy links point to a different checkout, specify it:
+For legacy links, pass `--legacy-root` with the absolute path to the retained
+original checkout containing their targets.
 
-```sh
-./scripts/bootstrap/backup.sh --create --legacy-root "$HOME/dotfiles"
-```
+The current source no longer includes the legacy component directories. Keep
+the original checkout or a private archive until the handoff and rollback review
+are complete; Git history retains the retired tracked files.
 
 The command leaves live files intact and prints a private backup directory under
 `~/.local/state/dotfiles/backups/`. Review `files/`, `links/`, `files.sha256`, and
@@ -67,15 +68,16 @@ After the Studio passes the [interactive checks](bootstrap.md#remaining-clean-ma
 5. Run `./bootstrap.sh --check`. Once conflicts are resolved, run bootstrap and
    complete the interactive checks.
 
-The original `fish/`, `alacritty/`, `tmux/`, and `nvim/` directories must remain
-available while links point into them. Bootstrap does not remove those links.
+Complete this handoff before advancing a legacy checkout to the current layout.
+Original link targets must remain available separately until migration is verified.
+Bootstrap does not remove those links.
 
 ## Restore the prior configuration
 
 Close affected apps. Preserve newer edits before moving any newly deployed files
 aside. Restore old links from the holding directory or backup's `links/` tree,
-keeping their original checkout available. Restore regular files from `files/`
-only after comparing them with current files.
+restoring their original targets from the retained checkout or archive first.
+Restore regular files from `files/` only after comparing them with current files.
 
 Use `absent.txt` to identify previously missing paths; remove a new file only if
 it is unchanged migration output. Check link targets and bindings afterward.

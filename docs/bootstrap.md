@@ -51,8 +51,8 @@ revision, advance its source checkout, then apply. The standalone installer
 starts at a detached commit; create a branch before making source commits.
 Do not reset a checkout with local changes.
 
-To add a managed file, update `manifests/config-files.tsv` as well. Preserve the
-legacy component directories while the MacBook's live symlinks point into them.
+To add a managed file, update `manifests/config-files.tsv` as well. Complete the
+[handoff](recovery.md#existing-mac-handoff) before updating a Mac using legacy links.
 
 ## Ownership and upgrades
 
