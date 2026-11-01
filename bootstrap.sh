@@ -7,15 +7,8 @@ source "$REPO_ROOT/scripts/bootstrap/session.sh"
 
 case ${1:-} in
     --help|-h)
-        printf '%s\n' 'Usage: ./bootstrap.sh [--check]' \
-            'No argument installs the core tools and applies configuration.' \
-            '--check reports installation conflicts without installing or applying.' \
-            'A passing check does not mean the tools are installed or working.'
-        exit 0 ;;
-    --check)
-        (($# == 1)) || die 'Unexpected extra arguments.'
-        /bin/bash "$REPO_ROOT/scripts/bootstrap/preflight.sh"
-        printf '\nNext: run ./bootstrap.sh to install tools and apply configuration.\n'
+        printf '%s\n' 'Usage: ./bootstrap.sh' \
+            'Checks for conflicts, installs core tools, and applies configuration.'
         exit 0 ;;
     '') (($# == 0)) || die 'Unexpected argument.' ;;
     *) die 'Unknown argument. Use --help.' ;;

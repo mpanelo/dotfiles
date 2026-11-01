@@ -114,16 +114,16 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(result.stderr, "")
         self.assertEqual(list(self.home.iterdir()), [])
 
-    def test_bootstrap_help_and_removed_plan_do_not_provision(self):
-        for arg, expected_code in (("--help", 0), ("--plan", 1)):
+    def test_bootstrap_help_and_removed_options_do_not_provision(self):
+        for arg, expected_code in (("--help", 0), ("--plan", 1), ("--check", 1)):
             result = subprocess.run(["/bin/bash", str(ROOT / "bootstrap.sh"), arg],
                                     env=self.env, text=True, capture_output=True)
             self.assertEqual(result.returncode, expected_code, result.stderr)
             self.assertEqual(list(self.home.iterdir()), [])
             if arg == "--help":
                 self.assertNotIn("--plan", result.stdout)
-                self.assertIn("without installing or applying", result.stdout)
-                self.assertIn("does not mean the tools are installed", result.stdout)
+                self.assertNotIn("--check", result.stdout)
+                self.assertIn("Usage: ./bootstrap.sh", result.stdout)
             else:
                 self.assertIn("Unknown argument", result.stderr)
 

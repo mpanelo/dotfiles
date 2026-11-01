@@ -1,106 +1,117 @@
-# Maintenance and testing
+# Maintenance
 
-For installation, use the [README](../README.md#set-up-a-new-mac).
+For installation and manual checks, use the [README](../README.md).
 
-## Installation conflict checks
+## Edit configuration
 
-`./bootstrap.sh --check` checks existing configuration, symlinks, runtime paths,
-app/font conflicts, and prerequisites. Missing tools are expected on a new Mac.
-It does not test network access, authentication, tool behavior, or rendering.
+```sh
+chezmoi edit ~/.config/fish/config.fish
+chezmoi diff
+chezmoi apply
+```
 
-Normal provisioning prints one initial result. Hooks and stages repeat the
-checks silently so they are safe to run independently; errors always appear.
-Conflicts stop provisioning. See [recovery](recovery.md) before moving files.
+A full apply also reconciles packages, toolchains, and plugins. Use full applies
+for provisioning. Review changes before committing and pushing them.
 
-## Remaining clean-Mac checks
-
-Automated checks run at the end of bootstrap. Test these interactively afterward:
-
-- **Terminal:** Fish starts in a new session; Starship and Nerd Font icons render
-  correctly. If Terminal.app forces zsh, select its default login shell setting.
-- **Fish:** abbreviations, fzf bindings, direnv, zoxide, and workmux work.
-- **tmux:** navigation, clipboard, saved sessions, and Alacritty shortcuts work.
-  The Studio should have no battery indicator.
-- **Neovim:** completion, search, parsers, bindings, LSP diagnostics, and formatting
-  work in Go, Rust, Lua, and Python files. Language tools resolve outside Mason.
-- **Node isolation:** fnm has no Node versions on a clean target; general-purpose
-  `node`/`npm` are absent, while BasedPyright works.
-- **Repeatability:** rerun bootstrap, then restart and check the environment again.
-
-A resumed installation tests recovery; it does not replace a clean-machine test.
-Keep the original MacBook setup until these checks pass. The ignored local
-checklist has the detailed manual steps.
-
-Bootstrap checks the configured font family through macOS CoreText. Installed
-font files alone do not pass verification; actual rendering still needs a look.
-
-## Applying future changes
-
-Edit with `chezmoi edit`, review `chezmoi diff`, then run a full `chezmoi apply`.
-This also reconciles core packages, toolchains, and plugins. Targeted applies
-are not the supported provisioning workflow.
-
-If you intentionally edited a deployed file, review it before importing it:
+To import an intentional edit made directly to a deployed file:
 
 ```sh
 chezmoi re-add ~/.config/fish/config.fish
 ```
 
-Commit and push reviewed source changes. On another Mac, fetch and review the
-revision, advance its source checkout, then apply. The standalone installer
-starts at a detached commit; create a branch before making source commits.
-Do not reset a checkout with local changes.
+Add new managed files to `manifests/config-files.tsv` for conflict checks and backups.
+The standalone installer starts at a detached commit; create a branch before editing.
 
-To add a managed file, update `manifests/config-files.tsv` as well. Complete the
-[handoff](recovery.md#existing-mac-handoff) before updating a Mac using legacy links.
+## Update another Mac
+
+From a clean dotfiles checkout:
+
+```sh
+git switch main
+git pull --ff-only
+chezmoi diff
+chezmoi apply
+```
+
+Resolve local edits before updating.
 
 ## Ownership and upgrades
 
-| What | Definition or owner |
+| What | Source |
 | --- | --- |
 | Configuration | `home/`, selected by `.chezmoiroot`; deployed as regular files |
-| Core packages and fonts | Root `Brewfile`; Homebrew owns installation |
-| Go baseline and tools | Native Go toolchain selection; `manifests/versions.json` and `manifests/go-tools.tsv` |
-| Rust | rustup; version and components declared by bootstrap |
-| BasedPyright and Ruff | Isolated uv tools; JSON pins and matching Python constraints |
-| Alacritty and Tree-sitter CLI | Official release downloads with pinned SHA-256 values |
-| Homebrew/rustup installers | `manifests/installers.tsv` |
-| Plugins | `home/dot_config/nvim/lazy-lock.json`, `home/dot_config/fish/fish_plugins`, and `manifests/tmux-plugins.tsv` |
+| Homebrew packages and fonts | Root `Brewfile` |
+| Tool versions, installers, and checksums | `manifests/` |
+| Alacritty and Tree-sitter CLI | Official binaries with pinned SHA-256 checksums |
+| Neovim plugins | `home/dot_config/nvim/lazy-lock.json` |
+| Fish plugins | `home/dot_config/fish/fish_plugins` |
+| tmux plugins | `manifests/tmux-plugins.tsv` |
 
-Homebrew uses `--no-upgrade` during reconciliation; it does not lock versions.
-Review upgrades separately and test on one Mac before updating the other.
+Homebrew installs missing packages without routine upgrades or cleanup. Review
+version and plugin changes separately, testing on one Mac before the other.
+State, credentials, caches, and plugin checkouts stay outside Git.
 
-Alacritty's cask is disabled. The official DMG installs into `~/Applications`,
-with a CLI link in `~/.local/bin`. Unknown or modified apps are refused;
-upgrades need a reviewed replacement. Quarantine and Gatekeeper stay enabled.
+Go uses Homebrew with native toolchain selection; Rust uses rustup. Declared pins
+provide the defaults, and project toolchain files retain control.
 
-State, caches, histories, credentials, and plugin checkouts stay outside Git.
-Do not refresh ownership records manually to bypass a conflict.
+Language servers and formatters are installed directly, outside Mason: Go/Rust
+support, Lua LS, StyLua, BasedPyright, and Ruff. fnm installs no Node versions;
+BasedPyright's uv environment owns its private Python and Node runtimes.
+Python and Lua support editor tooling; no frontend toolchain is provisioned.
 
-## Homebrew output and follow-up instructions
+Keep the managed Alacritty app in `~/Applications`; its CLI link is in
+`~/.local/bin`. An existing Homebrew-managed app stays in `/Applications`.
+First-launch approval, Git/SSH identity, and application logins remain manual.
 
-Private logs live in `~/.local/state/dotfiles/runs/`. Each run includes installer
-output, `brew-info.txt` caveats, package inventories, and the prior login shell.
-Review them before sharing; they are not a complete rollback snapshot.
+## Logs and Homebrew caveats
 
-Fish already manages Homebrew PATH, keg-only ssh-copy-id, and fzf integration.
-Skip recommendations to append these to zsh/bash profiles or copy example
-configs. Assess any other caveats before running commands or starting services.
+Private run records are in `~/.local/state/dotfiles/runs/`, including installer
+output, `brew-info.txt`, package inventories, and the prior login shell.
 
-## Isolated tests
+Fish already handles Homebrew PATH, ssh-copy-id, and fzf integration. Review other
+caveats before running commands or starting services. Check logs for private data
+before sharing them.
 
-From the repository, run:
+## Recovery
+
+Review the error and [run logs](#logs-and-homebrew-caveats), then rerun
+`./bootstrap.sh`. Completed stages are reconciled again. Bootstrap has no automatic
+rollback; installed software can remain after a failure.
+
+For conflicts, compare and back up the reported files before resolving ownership.
+Preserve unrelated files, local edits, and any symlink targets; never bypass
+ownership records or remove whole configuration directories to make setup pass.
+
+Create a configuration backup with:
+
+```sh
+./scripts/bootstrap/backup.sh --create
+```
+
+Backups in `~/.local/state/dotfiles/backups/` contain declared files, link metadata,
+checksums, and absent paths. They exclude histories, credentials, Fish universal
+variables, plugins, and sessions; keep a normal system backup too.
+
+Restore files selectively after preserving newer edits. Restore links only when
+their targets exist, and remove newly created paths only if they are unchanged
+migration output. Restoring configuration does not uninstall software.
+
+## Testing
+
+From the repository:
 
 ```sh
 python3 tests/test_bootstrap.py
 shellcheck -x bootstrap.sh install.sh scripts/bootstrap/*.sh tests/run-isolated.sh
-tests/run-isolated.sh --download-chezmoi
+tests/run-isolated.sh --smoke
 ```
 
-The integration test temporarily downloads checksum-verified chezmoi and applies
-only to isolated fixtures. Omit `--download-chezmoi` to use chezmoi on PATH.
+The integration test applies only to temporary fixtures and uses copied plugin
+caches. If chezmoi is missing, add `--download-chezmoi` for a checksum-verified
+temporary executable. These tests do not validate fresh package installation,
+live LSP attachment, or GUI rendering.
 
-Add `--smoke` to test existing Fish, tmux, and Neovim binaries using copied,
-matching plugin caches. It uses a private tmux socket and does not install
-packages or plugins. Keep isolation guards intact; never use live configuration.
-These tests do not prove fresh provisioning, LSP attachment, or GUI rendering.
+On the target Mac, check fonts/icons, bindings, clipboard, Fish integrations,
+and tmux battery status only on laptops. Verify Neovim completion, diagnostics,
+and formatting in Go, Rust, Lua, and Python, with BasedPyright working without
+general-purpose Node. A resumed install is not a clean-Mac test.
