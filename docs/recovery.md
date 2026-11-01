@@ -1,108 +1,56 @@
-# Recovery and migration
+# Recovery
 
 ## Resume a failed installation
 
-Review the error, update to a reviewed fix if needed, then rerun from the checkout:
+Review the error and the [run logs](bootstrap.md#logs-and-homebrew-caveats), then rerun:
 
 ```sh
 ./bootstrap.sh
 ```
 
-Completed stages are checked again. A failure can leave installed software behind;
-bootstrap has no automatic rollback. Keep logs in `~/.local/state/dotfiles/runs/`.
+Bootstrap preserves conflicting files and can resume completed stages. It has no
+automatic rollback; installed software can remain after a failure.
 
-| Error | Action |
+## Common problems
+
+| Problem | Action |
 | --- | --- |
-| Configuration, symlink, or app/font conflict | Compare the reported path and back it up before resolving it. No force-overwrite flag exists. |
-| Alacritty falls back to Menlo | Fully quit Alacritty and restart. If it persists, check the configured family is enabled in Font Book; installed files alone do not prove availability. |
-| Old Tree-sitter `rquickjs_macro` build failure | Update and rerun; bootstrap now uses an official precompiled CLI. |
-| Blink `mis-aligned LINKEDIT string pool` | Update and rerun; bootstrap detects an unloadable matcher and rebuilds it with stripping disabled. |
-| Old lazy.nvim assertion with an empty/truncated lockfile | Use the repair below, then rerun. |
+| File, symlink, app, or font conflict | Compare the reported path, back it up, and resolve ownership before retrying. Do not bypass ownership records. |
+| Alacritty moved into `/Applications` | Return the verified managed app to `~/Applications`; leave an existing Homebrew-managed app in place. |
+| Font falls back to Menlo | Fully quit Alacritty and restart the Mac. If it persists, check the configured family in Font Book. |
+| Colors missing with `NO_COLOR` set | Clear it in Fish with `set -eg NO_COLOR`. Fully quit and relaunch Alacritty from Finder if new windows inherit it. |
+| Empty or known truncated Neovim lockfile | Run `./scripts/bootstrap/repair-editor-lock.sh`, then bootstrap. Repair backs up the damaged file and refuses other differences. |
 
-For the known lazy.nvim lockfile failure:
+Preserve unrelated files and toolchains. Do not delete whole configuration/cache
+directories or change macOS security settings to fix an installation.
 
-```sh
-./scripts/bootstrap/repair-editor-lock.sh
-./bootstrap.sh
-```
-
-Repair backs up the damaged file and restores only an empty lockfile or the exact
-`{` plus newline fragment. Other differences and symlinks are refused.
-Do not delete plugin checkouts, Cargo caches, or configuration directories to
-resolve these failures. Do not change macOS security settings.
-
-## Back up configuration
-
-Before an existing-Mac handoff, run:
+## Configuration backups
 
 ```sh
 ./scripts/bootstrap/backup.sh --create
 ```
 
-For legacy links, pass `--legacy-root` with the absolute path to the retained
-original checkout containing their targets.
+Backups go into `~/.local/state/dotfiles/backups/`. They contain declared files,
+link metadata, checksums, and a list of absent paths. Histories, credentials,
+Fish universal variables, plugin data, and sessions are excluded; keep a normal
+system backup too.
 
-The current source no longer includes the legacy component directories. Keep
-the original checkout or a private archive until the handoff and rollback review
-are complete; Git history retains the retired tracked files.
+To restore, close affected apps and preserve newer edits. Compare current files
+with `files/`, restore regular files selectively, and restore links from `links/`
+only when their original targets are available. Use `absent.txt` to identify newly
+created paths; remove only unchanged migration output. This does not uninstall software.
 
-The command leaves live files intact and prints a private backup directory under
-`~/.local/state/dotfiles/backups/`. Review `files/`, `links/`, `files.sha256`, and
-`absent.txt` before proceeding. Unknown links and unsafe paths are refused.
+## Existing dotfiles
 
-Only declared configuration is saved. Keep your normal system backup and preserve
-the original checkout and runtime state: histories, Fish universal variables,
-credentials, plugin data, and sessions are excluded.
+Before updating a Mac that still uses legacy links:
 
-## Existing-Mac handoff
+1. Preserve the original checkout separately. Pass its absolute path with
+   `backup.sh --create --legacy-root` when backing up linked configuration.
+2. Review local edits and move recognized links into a private holding directory.
+3. Resolve app/font ownership and executable PATH conflicts.
+4. Run `./bootstrap.sh --check`, then bootstrap once conflicts are resolved.
+5. Complete the [manual checks](../README.md#after-setup) before removing backups.
 
-After the Studio passes the [interactive checks](bootstrap.md#remaining-clean-mac-checks):
-
-1. Close affected apps and handle active tmux sessions.
-2. Back up configuration and compare local edits with the managed source.
-3. Move only recognized legacy links into a private holding directory. Preserve
-   their targets and unrelated files; never delete whole config directories.
-4. Resolve unmanaged apps/fonts and executable PATH conflicts. Keep existing
-   Homebrew-managed Alacritty. Font adoption requires identical cask artifacts;
-   otherwise back up and review replacement. Preserve unrelated toolchains.
-5. Run `./bootstrap.sh --check`. Once conflicts are resolved, run bootstrap and
-   complete the interactive checks.
-
-Complete this handoff before advancing a legacy checkout to the current layout.
-Original link targets must remain available separately until migration is verified.
-Bootstrap does not remove those links.
-
-## Restore the prior configuration
-
-Close affected apps. Preserve newer edits before moving any newly deployed files
-aside. Restore old links from the holding directory or backup's `links/` tree,
-restoring their original targets from the retained checkout or archive first.
-Restore regular files from `files/` only after comparing them with current files.
-
-Use `absent.txt` to identify previously missing paths; remove a new file only if
-it is unchanged migration output. Check link targets and bindings afterward.
-Configuration restoration does not uninstall packages or restore excluded state.
-
-## Start fresh or remove installed software
-
-For a truly clean test, save needed files and logs elsewhere, then use a disposable
-macOS VM snapshot or, **on the test Studio only**, System Settings → General →
-Transfer or Reset → Erase All Content and Settings. This erases user data and apps;
-do not restore the old environment during Setup Assistant. See
-[Apple's instructions](https://support.apple.com/en-us/102664).
-A new account still shares Homebrew and is not a clean system.
-
-For selective cleanup instead:
-
-1. Restore the prior registered login shell before removing Fish. If it was zsh,
-   run `chsh -s /bin/zsh` and open a new login session.
-2. Compare package inventories with the private pre-install records. Remove only
-   reviewed additions; uninstall casks while Homebrew still works, without `--zap`.
-3. Remove Homebrew itself only if it was absent beforehand and nothing else needs
-   it. Review the [official uninstaller](https://docs.brew.sh/FAQ#how-do-i-uninstall-homebrew)
-   and its `--dry-run` before running it interactively against the native prefix.
-4. Review remaining owned apps, tools, links, and shell changes individually. Remove
-   an added Fish `/etc/shells` entry only after all accounts have switched away.
-
-Selective cleanup is not a factory reset. Keep personal files, unrelated packages,
-and Command Line Tools; never delete entire `~/.config`, `~/.cargo`, or `~/go` trees.
+Keep the original link targets available until migration is verified. The current
+checkout no longer includes legacy component directories; tracked copies remain
+in Git history.
