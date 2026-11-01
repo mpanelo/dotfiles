@@ -1,0 +1,108 @@
+-- Built-in completion
+vim.opt.complete = ".,w,b,kspell" -- Use less sources
+vim.opt.completeopt = "menuone,noselect,fuzzy,nosort" -- Use custom behavior
+
+-- When nonempty, shows the effects of |:substitute|, |:smagic|, |:snomagic|
+-- and user commands with the |:command-preview| flag as you type. The 'split'
+-- option shows the effects of a command incrementally in the buffer, but also
+-- shows partial off-screen results in a preview window.
+vim.opt.inccommand = "split"
+
+-- The : command allows you to use the tab completion to find the longest common
+-- match and then show the full list.
+vim.opt.wildmode = "list:longest,list:full"
+
+vim.opt.wildignore:append({ "node_modules", ".git" }) -- ignore certain files when using tab completion
+vim.opt.suffixesadd:append({ ".java", ".rs" }) -- search for suffixes using gf
+
+-- In Insert mode: Use the appropriate number of spaces to insert a
+-- <Tab>. Spaces are used in indents with the '>' and '<' commands and
+-- when 'autoindent' is on.
+vim.opt.expandtab = true
+
+-- Copy indent from current line when starting a new line (typing <CR>
+-- in Insert mode or when using the "o" or "O" command).
+vim.opt.autoindent = true
+
+-- Do smart auto indenting when starting a new line.
+vim.opt.smartindent = true
+
+-- Number of spaces that a <Tab> in the file counts for.
+vim.opt.tabstop = 4
+
+-- Number of spaces that a <Tab> counts for while performing editing
+-- operations, like inserting a <Tab> or using <BS>.
+vim.opt.softtabstop = 4
+
+-- Number of spaces to use for each step of (auto)indent.
+vim.opt.shiftwidth = 4
+
+-- While typing a search command, show where the pattern matches so far
+vim.opt.incsearch = true
+
+-- Ignore case in search patterns
+vim.opt.ignorecase = true
+
+-- Override the 'ignorecase' option if the search pattern contains uppercase characters.
+vim.opt.smartcase = true
+
+-- Show line numbers
+vim.opt.number = true
+
+-- Relative line numbers to help with jumping
+vim.o.relativenumber = true
+
+-- Saves undo history to a file
+vim.opt.undofile = true
+
+-- Diagnostic
+vim.diagnostic.config({
+	underline = true,
+	signs = {
+		text = {
+			[vim.diagnostic.severity.ERROR] = "",
+			[vim.diagnostic.severity.WARN] = "",
+			[vim.diagnostic.severity.INFO] = "",
+			[vim.diagnostic.severity.HINT] = "󰌵",
+		},
+	},
+	virtual_text = false,
+	float = {
+		show_header = true,
+		source = "if_many",
+		border = "rounded",
+		focusable = false,
+	},
+})
+
+vim.opt.spelllang = "en_us"
+vim.opt.spell = true
+
+-- Prevent sign column from jumping in/out
+vim.opt.signcolumn = "yes"
+
+-- use GUI colors for the terminal
+vim.opt.termguicolors = true
+
+-- Keep N lines visible above/below cursor while scrolling
+vim.opt.scrolloff = 10
+
+-- Open splits in the more intuitive direction
+vim.opt.splitright = true
+vim.opt.splitbelow = true
+
+-- Highlight the line the cursor is on
+vim.opt.cursorline = true
+
+-- Useful to see the difference between tabs and spaces and for trailing blanks
+-- Further changed by the 'listchars' option.
+vim.o.list = true
+vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+
+-- Execute {command}, and use a dialog when an operation has to be confirmed
+vim.o.confirm = true
+
+-- Visual guide for line length
+--vim.opt.colorcolumn = "120"
+
+vim.cmd.colorscheme("catppuccin-nvim")

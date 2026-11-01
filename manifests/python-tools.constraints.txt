@@ -1,0 +1,4 @@
+# Deliberate updates: keep these pins consistent with versions.json.
+basedpyright==1.39.9
+nodejs-wheel-binaries==24.16.0
+ruff==0.16.2

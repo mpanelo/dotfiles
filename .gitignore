@@ -3,3 +3,7 @@ macos/brew/Brewfile.lock.json
 tmux/plugins
 alacritty/themes
 fish_variables
+__pycache__/
+Brewfile.lock.json
+# Personal provisioning notes; never include in the shared dotfiles source.
+/provisioning-checklist.local.md

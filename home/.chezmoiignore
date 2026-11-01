@@ -1,0 +1,11 @@
+# Runtime state belongs to applications, not the source tree.
+.config/fish/fish_variables
+.config/fish/functions/fisher.fish
+.config/fish/functions/bass.fish
+.config/fish/functions/__bass.py
+.config/fish/functions/_fzf_*
+.config/fish/functions/fzf_configure_bindings.fish
+.config/fish/conf.d/fzf.fish
+.config/fish/completions/fisher.fish
+.config/fish/completions/fzf_configure_bindings.fish
+.config/tmux/plugins

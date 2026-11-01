@@ -1,0 +1,7 @@
+# directory HTTPS-repository commit
+tpm https://github.com/tmux-plugins/tpm.git e261deb1b47614eed3400089ce7197dc68acc4eb
+tmux-sensible https://github.com/tmux-plugins/tmux-sensible.git 25cb91f42d020f675bb0a2ce3fbd3a5d96119efa
+tmux-resurrect https://github.com/tmux-plugins/tmux-resurrect.git cff343cf9e81983d3da0c8562b01616f12e8d548
+catppuccin-tmux https://github.com/mpanelo/catppuccin-tmux.git d2d25bd3393fe43f19eb4fff6cdd2bdf5578e622
+tmux-battery https://github.com/tmux-plugins/tmux-battery.git 43832651ede43f54dcf0588727c1957fe648d57d
+tmux-continuum https://github.com/tmux-plugins/tmux-continuum.git 0698e8f4b17d6454c71bf5212895ec055c578da0

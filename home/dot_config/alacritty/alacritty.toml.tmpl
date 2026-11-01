@@ -1,0 +1,95 @@
+[terminal]
+[terminal.shell]
+program = "{{ if eq .chezmoi.arch "arm64" }}/opt/homebrew{{ else }}/usr/local{{ end }}/bin/fish"
+args = ["-l"]
+
+[font]
+size = 18.0
+
+[font.normal]
+family = "JetBrainsMono Nerd Font"
+style = "Regular"
+
+# https://github.com/alacritty/alacritty/issues/7608#issuecomment-1975006973
+[[keyboard.bindings]]
+chars = "\u001f"
+key = "Slash"
+mods = "Control"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[D"  # C-b Left
+key = "H"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[B"  # C-b Down
+key = "J"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[A"  # C-b Up
+key = "K"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[C"  # C-b Right
+key = "L"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00021"
+key = "Key1"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00022"
+key = "Key2"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00023"
+key = "Key3"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00024"
+key = "Key4"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00025"
+key = "Key5"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00026"
+key = "Key6"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00027"
+key = "Key7"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00028"
+key = "Key8"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00029"
+key = "Key9"
+mods = "Command"
+
+[window]
+decorations = "buttonless"
+startup_mode = "Maximized"
+option_as_alt = "OnlyRight"
+
+[window.padding]
+x = 14
+y = 10
+
+[general]
+live_config_reload = true
+import = ["~/.config/alacritty/themes/catppuccin-mocha.toml"]

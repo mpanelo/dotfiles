@@ -1,0 +1,4 @@
+# executable module version
+gopls golang.org/x/tools/gopls v0.19.1
+goimports golang.org/x/tools/cmd/goimports v0.34.0
+gofumpt mvdan.cc/gofumpt v0.8.0
