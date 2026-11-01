@@ -62,11 +62,7 @@ fi
 for entry in alacritty alacritty-direct; do
     infocmp "$entry" >/dev/null 2>&1 || die "Missing terminfo: $entry"
 done
-font_found=0
-for font in "$HOME/Library/Fonts/"*JetBrains*"Nerd"*.ttf; do
-    [[ ! -f "$font" ]] || font_found=1
-done
-((font_found)) || die 'JetBrainsMono Nerd Font was not found.'
+python3 "$REPO_ROOT/scripts/bootstrap/verify-font.py" "$HOME/.config/alacritty/alacritty.toml"
 check_fish_syntax
 editor_check
 verify_fish_login_shell

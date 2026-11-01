@@ -11,6 +11,7 @@ import plistlib
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -32,6 +33,50 @@ def populate_fish_files(home):
             path.write_text("# managed fixture\n")
             paths.append(path)
     return paths
+
+
+class FontTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="dotfiles-font-test-")
+        self.addCleanup(self.tmp.cleanup)
+        self.home = Path(self.tmp.name)
+        self.config = self.home / "alacritty.toml"
+
+    def verify(self):
+        return subprocess.run(
+            [sys.executable, "-I", str(SCRIPTS / "verify-font.py"), str(self.config)],
+            env=dict(os.environ, HOME=str(self.home)), text=True, capture_output=True,
+        )
+
+    @unittest.skipUnless(sys.platform == "darwin", "Requires macOS CoreText")
+    def test_available_native_font_passes_without_config_changes(self):
+        original = '[font.normal]\nfamily = "Menlo"\n'
+        self.config.write_text(original)
+        for _ in range(2):
+            result = self.verify()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Font available to macOS: Menlo", result.stdout)
+            self.assertEqual(self.config.read_text(), original)
+            self.assertEqual(list(self.home.iterdir()), [self.config])
+
+    @unittest.skipUnless(sys.platform == "darwin", "Requires macOS CoreText")
+    def test_font_file_presence_does_not_pass_unavailable_family(self):
+        self.config.write_text('[font.normal]\nfamily = "Dotfiles Missing Font Fixture"\n')
+        font = self.home / "Library/Fonts/JetBrainsMonoNerdFont-Regular.ttf"
+        font.parent.mkdir(parents=True)
+        font.write_bytes(b"Unregistered font fixture; never installed")
+        result = self.verify()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("not visible to macOS CoreText", result.stderr)
+        self.assertIn("log out or restart", result.stderr)
+        self.assertNotIn("Font available", result.stdout)
+        self.assertEqual(font.read_bytes(), b"Unregistered font fixture; never installed")
+
+    def test_undeclared_family_is_reported_before_font_discovery(self):
+        self.config.write_text("[font]\nsize = 18.0\n")
+        result = self.verify()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("must declare font.normal.family", result.stderr)
 
 
 class SafetyTests(unittest.TestCase):
