@@ -20,7 +20,9 @@ chezmoi re-add ~/.config/fish/config.fish
 ```
 
 Add new managed files to `manifests/config-files.tsv` for conflict checks and backups.
-The standalone installer starts at a detached commit; create a branch before editing.
+The standalone installer resolves `main` once and retries at the existing detached
+commit. Create a branch before editing; pass a full commit hash to `install.sh`
+when a specific revision is needed.
 
 ## Update another Mac
 

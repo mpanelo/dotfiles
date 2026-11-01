@@ -405,6 +405,138 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual((target / "plugin.conf").read_text(), "local customization\n")
 
 
+@unittest.skipUnless(sys.platform == "darwin" and os.geteuid() != 0, "macOS user launcher")
+class LauncherTests(unittest.TestCase):
+    """Use real local Git repositories and a harmless bootstrap fixture."""
+
+    def setUp(self):
+        SafetyTests.setUp(self)
+        self.root = Path(self.tmp.name)
+        self.remote = self.root / "remote"
+        self.remote.mkdir()
+        self.checkout = self.home / ".local/share/chezmoi"
+        self.receipt = self.root / "bootstrap-runs"
+        self.log = self.root / "git-commands.jsonl"
+        self.real_git = shutil.which("git")
+        self.git(self.remote, "init", "--quiet", "--initial-branch=main")
+        (self.remote / "bootstrap.sh").write_text(
+            '#!/bin/bash\nset -eu\nprintf "ran\\n" >> "$BOOTSTRAP_RECEIPT"\n'
+            'exit "${FIXTURE_BOOTSTRAP_STATUS:-0}"\n')
+        self.first = self.commit("first")
+        (self.remote / "version.txt").write_text("later source\n")
+        self.later = self.commit("later")
+        self.git(self.remote, "update-ref", "refs/heads/main", self.first)
+        self.bin = self.root / "bin"
+        self.bin.mkdir()
+        wrapper = self.bin / "git"
+        wrapper.write_text(f"#!{sys.executable}\n" + '''import json, os, subprocess, sys
+args = sys.argv[1:]
+with open(os.environ["GIT_COMMAND_LOG"], "a") as log:
+    log.write(json.dumps(args) + "\\n")
+if args[0] == "ls-remote":
+    mode = os.environ.get("FIXTURE_RESOLUTION", "ok")
+    if mode == "fail":
+        sys.exit(128)
+    if mode == "invalid":
+        print("invalid\\trefs/heads/main")
+        sys.exit(0)
+    args = [os.environ["FIXTURE_REMOTE"] if a == "https://github.com/mpanelo/dotfiles.git" else a for a in args]
+    result = subprocess.run([os.environ["REAL_GIT"], *args], capture_output=True, text=True)
+    if os.environ.get("ADVANCE_MAIN_TO"):
+        subprocess.run([os.environ["REAL_GIT"], "-C", os.environ["FIXTURE_REMOTE"],
+                        "update-ref", "refs/heads/main", os.environ["ADVANCE_MAIN_TO"]], check=True)
+    sys.stdout.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    sys.exit(result.returncode)
+if "fetch" in args:
+    args = [os.environ["FIXTURE_REMOTE"] if a == "origin" else a for a in args]
+os.execv(os.environ["REAL_GIT"], [os.environ["REAL_GIT"], *args])
+''')
+        wrapper.chmod(0o755)
+        xcode = self.bin / "xcode-select"
+        xcode.write_text('#!/bin/sh\n[ "$1" = -p ] || exit 99\nprintf "/fixture/developer\\n"\n')
+        xcode.chmod(0o755)
+        self.env.update(PATH=str(self.bin) + os.pathsep + self.env["PATH"],
+                        REAL_GIT=self.real_git, FIXTURE_REMOTE=str(self.remote),
+                        GIT_COMMAND_LOG=str(self.log), BOOTSTRAP_RECEIPT=str(self.receipt),
+                        GIT_ALLOW_PROTOCOL="file", TMPDIR=str(self.root))
+
+    def git(self, path, *args):
+        return subprocess.check_output([self.real_git, "-C", str(path), *args],
+                                       env=self.env, text=True, stderr=subprocess.PIPE).strip()
+
+    def commit(self, name):
+        self.git(self.remote, "add", ".")
+        self.git(self.remote, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                 "commit", "--quiet", "-m", name)
+        return self.git(self.remote, "rev-parse", "HEAD")
+
+    def install(self, *args, **extra_env):
+        return subprocess.run(["/bin/bash", str(ROOT / "install.sh"), *args],
+                              env=dict(self.env, **extra_env), text=True, capture_output=True)
+
+    def commands(self):
+        return [json.loads(line) for line in self.log.read_text().splitlines()]
+
+    def test_default_fetches_resolved_commit_even_if_main_moves(self):
+        result = self.install(ADVANCE_MAIN_TO=self.later)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.git(self.checkout, "rev-parse", "HEAD"), self.first)
+        self.assertEqual(self.git(self.remote, "rev-parse", "main"), self.later)
+        self.assertFalse((self.checkout / "version.txt").exists())
+        self.assertEqual(self.receipt.read_text(), "ran\n")
+        self.assertEqual(sum(c[0] == "ls-remote" for c in self.commands()), 1)
+        self.assertEqual([c[-1] for c in self.commands() if "fetch" in c], [self.first])
+
+    def test_retry_resumes_failed_snapshot_without_resolving_or_fetching(self):
+        result = self.install(FIXTURE_BOOTSTRAP_STATUS="17")
+        self.assertEqual(result.returncode, 17, result.stderr)
+        self.git(self.remote, "update-ref", "refs/heads/main", self.later)
+        result = self.install(FIXTURE_RESOLUTION="fail")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.git(self.checkout, "rev-parse", "HEAD"), self.first)
+        self.assertEqual(self.receipt.read_text(), "ran\nran\n")
+        self.assertEqual(sum(c[0] == "ls-remote" for c in self.commands()), 1)
+        self.assertEqual(sum("fetch" in c for c in self.commands()), 1)
+
+    def test_explicit_commit_bypasses_main_resolution(self):
+        self.git(self.remote, "update-ref", "refs/heads/main", self.later)
+        result = self.install(self.first, FIXTURE_RESOLUTION="fail")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.git(self.checkout, "rev-parse", "HEAD"), self.first)
+        self.assertFalse(any(c[0] == "ls-remote" for c in self.commands()))
+
+    def test_failed_or_invalid_resolution_leaves_no_checkout(self):
+        for mode, message in [("fail", "Could not resolve main"), ("invalid", "Unexpected main revision")]:
+            with self.subTest(mode=mode):
+                result = self.install(FIXTURE_RESOLUTION=mode)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertFalse(self.checkout.exists())
+                self.assertFalse(self.receipt.exists())
+
+    def test_existing_edits_origin_and_revision_are_preserved(self):
+        self.assertEqual(self.install().returncode, 0)
+        script = self.checkout / "bootstrap.sh"
+        original = script.read_text()
+        script.write_text(original + "# local change\n")
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("local changes", result.stderr)
+        self.assertEqual(script.read_text(), original + "# local change\n")
+        script.write_text(original)
+        self.git(self.checkout, "remote", "set-url", "origin", str(self.remote))
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unexpected origin", result.stderr)
+        self.git(self.checkout, "remote", "set-url", "origin", "https://github.com/mpanelo/dotfiles.git")
+        result = self.install(self.later)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("different revision", result.stderr)
+        self.assertEqual(self.git(self.checkout, "rev-parse", "HEAD"), self.first)
+        self.assertEqual(self.receipt.read_text(), "ran\n")
+
+
 class InstallerTests(unittest.TestCase):
     setUp = SafetyTests.setUp
 
