@@ -9,7 +9,6 @@ local ok, err = xpcall(function()
     assert(result.code == 0, "Cannot read plugin revision: " .. name)
     assert(vim.trim(result.stdout) == entry.commit, "Plugin differs from its pin: " .. name)
   end
-  require("blink.cmp").build():pwait()
   local result = vim.system({ "make" }, {
     cwd = vim.fn.stdpath("data") .. "/lazy/telescope-fzf-native.nvim",
     text = true,

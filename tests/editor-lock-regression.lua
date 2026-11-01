@@ -31,9 +31,6 @@ local ok, err = xpcall(function()
 
   -- Native builds are separate tests. Stub them here so this regression test
   -- cannot download/build plugins or launch another package installer.
-  package.loaded["blink.cmp"] = { build = function()
-    return { pwait = function() vim.g.dotfiles_build_started = true end }
-  end }
   local system = vim.system
   vim.system = function(command, options)
     if command[1] == "make" then return { wait = function() return { code = 0 } end } end

@@ -220,6 +220,15 @@ unchanged commit. Native setup verifies those Git commits before building; it
 does not call `Lazy restore` or rewrite the lockfile. Existing upstream refs are
 preserved. See the recovery guide if a prior run left a truncated lockfile.
 
+Blink's native matcher is prepared in a separate Neovim process with `-u NONE`,
+before managed configuration loads it. The installer checks the dynamic loader,
+not just file presence, and forces a rebuild when a cached library cannot load.
+For that build only, Cargo release and build-dependency stripping are disabled
+to avoid the pinned Rust/LLVM dylib-alignment issue on newer macOS. Inherited
+settings are restored afterward. Build errors stop provisioning immediately;
+the Rust matcher must load successfully before editor verification continues.
+This changes neither plugin/toolchain pins nor global Cargo configuration.
+
 ## Remaining clean-Mac checks
 
 Before treating the setup as production-ready, validate full provisioning on a

@@ -38,6 +38,21 @@ other differing files and symlinks are refused for manual comparison. It does
 not reset plugin repositories, discard valid lockfile changes, or apply other
 configuration. A clean-machine reset is unnecessary to resume this failure.
 
+### Recovery from Blink's native library load failure
+
+The `mis-aligned LINKEDIT string pool` error matches an
+[upstream Rust/LLVM issue](https://github.com/rust-lang/rust/issues/157750) that
+can make generated macOS dynamic libraries unloadable. Blink's pinned build API
+normally treats an existing library file as available and can skip rebuilding it.
+
+Pull the bootstrap fix and rerun `./bootstrap.sh`. A minimal Neovim process
+checks the cached matcher's loadability before ordinary plugin startup. Missing
+or unloadable output is rebuilt with stripping disabled for that build, then
+loaded again. Cargo failures propagate immediately. There is no need to delete
+the plugin checkout, clear the Cargo registry, change security settings, or
+switch the configured matcher to Lua. This rebuild affects a generated native
+artifact and preserves configuration, keybindings, and source pins.
+
 ## Failed provisioning, cleanup, and a truly fresh target
 
 Bootstrap is staged, not transactional. A failed `brew bundle` can leave

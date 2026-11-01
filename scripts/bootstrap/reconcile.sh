@@ -158,7 +158,8 @@ install_plugins() {
         sync_checkout "$HOME/.local/share/nvim/lazy/$name" "$url" "$commit" "$branch"
     done < "$REPO_ROOT/manifests/nvim-plugins.tsv"
     fingerprint=$(cat "$lock" "$REPO_ROOT/manifests/versions.json" \
-        "$HOME/.config/nvim/lua/config/treesitter.lua" "$REPO_ROOT/scripts/bootstrap/install-editor.lua" | shasum -a 256 | awk '{print $1}')
+        "$HOME/.config/nvim/lua/config/treesitter.lua" "$REPO_ROOT/scripts/bootstrap/install-editor.lua" \
+        "$REPO_ROOT/scripts/bootstrap/build-blink.lua" "$REPO_ROOT/scripts/bootstrap/install-blink.lua" | shasum -a 256 | awk '{print $1}')
     [[ ! -f "$STATE_DIR/editor.sha256" ]] || previous=$(cat "$STATE_DIR/editor.sha256")
     # A successful manifest stamp cannot hide subsequently deleted build artifacts.
     [[ -f "$HOME/.local/share/nvim/lazy/telescope-fzf-native.nvim/build/libfzf.so" ]] || missing=1
@@ -167,6 +168,9 @@ install_plugins() {
     if ((missing)); then
         export DOTFILES_REPO_ROOT="$REPO_ROOT" RUSTUP_TOOLCHAIN
         RUSTUP_TOOLCHAIN=$(version rust)
+        # Repair the native matcher before normal startup can load a broken
+        # cached module and leave partially initialized plugin state in Lua.
+        DOTFILES_PROVISIONING=1 nvim --headless -u NONE -i NONE -n -c 'lua dofile(vim.env.DOTFILES_REPO_ROOT .. "/scripts/bootstrap/install-blink.lua")'
         DOTFILES_PROVISIONING=1 nvim --headless -c 'lua dofile(vim.env.DOTFILES_REPO_ROOT .. "/scripts/bootstrap/install-editor.lua")'
         after=$(sha_file "$lock")
         [[ "$before" == "$after" ]] || die 'Plugin restoration changed lazy-lock.json; inspect it before proceeding.'

@@ -255,6 +255,75 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual((target / "plugin.conf").read_text(), "local customization\n")
 
 
+class BlinkBuildTests(unittest.TestCase):
+    setUp = SafetyTests.setUp
+
+    def test_isolated_startup_requires_pinned_plugins(self):
+        nvim = shutil.which("nvim")
+        if not nvim:
+            self.skipTest("requires Neovim; no installation is attempted")
+        root = Path(self.tmp.name) / "source"
+        lockfile = root / "home/dot_config/nvim/lazy-lock.json"
+        lockfile.parent.mkdir(parents=True)
+        marker = self.home / "native-build-started"
+        helper = root / "scripts/bootstrap/build-blink.lua"
+        helper.parent.mkdir(parents=True)
+        helper.write_text('return function() local f = assert(io.open(vim.env.DOTFILES_BUILD_MARKER, "w")); f:write("built"); f:close() end\n')
+        lock = {}
+        for name in ("blink.lib", "blink.cmp"):
+            plugin = self.home / ".local/share/nvim/lazy" / name
+            plugin.mkdir(parents=True)
+            (plugin / "fixture.txt").write_text("plugin fixture\n")
+            if name == "blink.cmp":
+                fuzzy = plugin / "lua/blink/cmp/fuzzy.lua"
+                fuzzy.parent.mkdir(parents=True)
+                fuzzy.write_text('return { set_implementation = function(name) assert(name == "rust"); assert(io.open(vim.env.DOTFILES_BUILD_MARKER)):close() end }\n')
+            commands = (("init", "--quiet"), ("add", "."),
+                        ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture"))
+            for command in commands:
+                subprocess.run(["git", "-C", str(plugin), *command], env=self.env, check=True)
+            pin = subprocess.check_output(["git", "-C", str(plugin), "rev-parse", "HEAD"], env=self.env, text=True).strip()
+            lock[name] = {"commit": pin}
+        # The real configuration must not run before the native repair process.
+        init = self.home / ".config/nvim/init.lua"
+        init.parent.mkdir(parents=True)
+        init.write_text('error("managed startup ran before native repair")\n')
+        env = dict(self.env, XDG_CONFIG_HOME=str(self.home / ".config"),
+                   XDG_DATA_HOME=str(self.home / ".local/share"),
+                   XDG_STATE_HOME=str(self.home / ".local/state"),
+                   XDG_CACHE_HOME=str(self.home / ".cache"), DOTFILES_REPO_ROOT=str(root),
+                   DOTFILES_BUILD_MARKER=str(marker), DOTFILES_BLINK_ENTRY=str(SCRIPTS / "install-blink.lua"))
+        for wrong_pin in (False, True):
+            with self.subTest(wrong_pin=wrong_pin):
+                if marker.exists():
+                    marker.unlink()
+                if wrong_pin:
+                    lock["blink.cmp"]["commit"] = "0" * 40
+                lockfile.write_text(json.dumps(lock))
+                result = subprocess.run([nvim, "--headless", "-u", "NONE", "-i", "NONE", "-n", "-c", 'lua dofile(vim.env.DOTFILES_BLINK_ENTRY)'], env=env, text=True, capture_output=True, timeout=30)
+                if wrong_pin:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("Plugin differs from its pin", result.stderr)
+                    self.assertFalse(marker.exists())
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertTrue(marker.exists())
+
+    def test_rebuild_and_failure_handling(self):
+        nvim = shutil.which("nvim")
+        if not nvim:
+            self.skipTest("requires Neovim; no installation is attempted")
+        env = dict(self.env, XDG_CONFIG_HOME=str(self.home / ".config"),
+                   XDG_DATA_HOME=str(self.home / ".local/share"),
+                   XDG_STATE_HOME=str(self.home / ".local/state"),
+                   XDG_CACHE_HOME=str(self.home / ".cache"),
+                   DOTFILES_BLINK_BUILDER=str(SCRIPTS / "build-blink.lua"),
+                   DOTFILES_BLINK_TEST=str(ROOT / "tests/blink-build-regression.lua"))
+        result = subprocess.run([nvim, "--headless", "-u", "NONE", "-i", "NONE", "-n", "-c", 'lua dofile(vim.env.DOTFILES_BLINK_TEST)'], env=env, text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("DOTFILES_BLINK_BUILD_OK: 5 scenarios", result.stdout + result.stderr)
+
+
 class EditorBootstrapTests(unittest.TestCase):
     setUp = SafetyTests.setUp
 
