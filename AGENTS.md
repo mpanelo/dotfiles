@@ -37,8 +37,8 @@ keybindings, and plugin functionality when changing how they are installed.
   dump the environment or read credential stores or private account configuration
   to debug builds.
 - Keep machine-specific data, diagnostics, package inventories, and backups out
-  of Git. `provisioning-checklist.local.md` is deliberately ignored; never
-  force-add it or copy the user's completed notes into committed documentation.
+  of Git. Personal provisioning notes stay ignored; never force-add them or copy
+  the user's completed notes into committed documentation.
 - Preserve unknown files, local edits, and existing applications. Refuse unsafe
   symlinks, path traversal, unexpected file types, and unowned destinations.
   Never remove whole configuration, Cargo, Go, font, or Homebrew directories as
@@ -105,8 +105,7 @@ keybindings, and plugin functionality when changing how they are installed.
   Mac. Put each command on its own line and keep guards and error handling in
   scripts. Do not require users to assemble argument arrays or demo paths.
 - Keep one main setup workflow in `README.md`. Use `docs/bootstrap.md` for
-  maintenance and ownership, `docs/recovery.md` for recovery and handoff, and the
-  existing migration plan for design decisions. Link rather than repeat.
+  maintenance, ownership, tooling decisions, and recovery. Link rather than repeat.
 - Give each procedure one authoritative home. Update or remove superseded prose
   instead of appending more overlapping validation or status documents.
 - Retain necessary safety limits and unique manual or hardware evidence.

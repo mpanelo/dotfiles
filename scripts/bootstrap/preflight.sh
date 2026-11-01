@@ -154,7 +154,7 @@ if ((!quiet)); then
     printf '\nNot checked: network access, administrator authentication, tool versions,\n'
     printf 'language-server behavior, or terminal/font rendering.\n'
 fi
-((conflicts == 0)) || die "Installation blocked by $conflicts conflict(s). No installation or configuration changes were made. See docs/recovery.md."
+((conflicts == 0)) || die "Installation blocked by $conflicts conflict(s). No installation or configuration changes were made. See docs/bootstrap.md#recovery."
 if ((!quiet)); then
     log 'Installation conflict check passed: no blocking conflicts were found.'
     printf 'Missing tools are expected on a clean Mac; this is not a completed provisioning check.\n'
