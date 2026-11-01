@@ -77,7 +77,10 @@ def smoke_tmux(h):
     text = product.read_text().replace("@continuum-restore 'on'", "@continuum-restore 'off'")
     text = text.replace("@continuum-save-interval '15'", "@continuum-save-interval '0'")
     config = h.workspace / "tmux-test.conf"
-    config.write_text('set -g default-shell /bin/sh\nset-environment -g HOME ' + json.dumps(str(h.fake_home)) + '\n' + text)
+    # Seed the tmux 3.8 default even when testing with an older installed binary.
+    config.write_text('set -g default-shell /bin/sh\n'
+                      'set -g window-status-current-style underscore\n'
+                      'set-environment -g HOME ' + json.dumps(str(h.fake_home)) + '\n' + text)
     helper = h.destination / ".config/tmux/has-battery.sh"
     original = helper.read_bytes()
 
@@ -92,6 +95,7 @@ def smoke_tmux(h):
             assert tmux("show-options", "-gqv", "@show_battery").stdout.strip() == str(battery)
             assert tmux("show-options", "-gv", "base-index").stdout.strip() == "1"
             assert tmux("show-options", "-gv", "set-clipboard").stdout.strip() == "on"
+            assert tmux("show-options", "-gv", "window-status-current-style").stdout.strip() == "none"
             # A single-key query displays a tmux status message on some releases;
             # listing the table consistently returns machine-readable stdout.
             prefix = tmux("list-keys", "-T", "prefix").stdout
@@ -100,7 +104,7 @@ def smoke_tmux(h):
             assert re.search(r"-T copy-mode-vi\s+y\s+.*copy-selection", copy)
             assert not (h.destination / ".config/tmux/plugins/tmux-sessionx").exists()
             tmux("kill-server")
-        h.passed("tmux loads on a private socket with preserved keys and desktop/laptop battery behavior")
+        h.passed("tmux preserves keys, an unadorned current window, and desktop/laptop battery behavior")
     finally:
         helper.write_bytes(original)
         h.run(["tmux", "-S", socket, "kill-server"], env=env, success=None)

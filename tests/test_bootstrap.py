@@ -835,10 +835,11 @@ class SourceTests(unittest.TestCase):
         new = (ROOT / "home/dot_config/nvim/lua/plugins/formatting.lua").read_text()
         self.assertEqual(old.replace('\t\t\tbash = { "shfmt" },\n', ''), new)
 
-    def test_tmux_only_removes_sessionx(self):
+    def test_tmux_preserves_config_except_agreed_changes(self):
         old = (ROOT / "tmux/tmux.conf").read_text()
         new = (ROOT / "home/dot_config/tmux/tmux.conf").read_text()
-        self.assertEqual(old.replace("set -g @plugin 'omerxx/tmux-sessionx'\n", ""), new)
+        self.assertEqual(old.replace("set -g @plugin 'omerxx/tmux-sessionx'\n", ""),
+                         new)
         self.assertNotIn("sessionx", (ROOT / "manifests/tmux-plugins.tsv").read_text())
 
     def test_no_frontend_or_unagreed_packages(self):
