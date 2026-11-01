@@ -152,7 +152,9 @@ class SafetyTests(unittest.TestCase):
     def test_directory_and_dangling_symlinks_are_refused(self):
         (self.home / ".config").mkdir()
         target = self.home / ".config/fish"
-        target.symlink_to(ROOT / "fish", target_is_directory=True)
+        original = Path(self.tmp.name) / "legacy-fish"
+        original.mkdir()
+        target.symlink_to(original, target_is_directory=True)
         result = self.preflight()
         self.assertNotEqual(result.returncode, 0)
         self.assertTrue(target.is_symlink())
@@ -164,7 +166,9 @@ class SafetyTests(unittest.TestCase):
     def test_individual_file_symlink_is_refused(self):
         target = self.home / ".config/tmux/tmux.conf"
         target.parent.mkdir(parents=True)
-        target.symlink_to(ROOT / "tmux/tmux.conf")
+        original = Path(self.tmp.name) / "legacy-tmux.conf"
+        original.write_text("# legacy tmux fixture\n")
+        target.symlink_to(original)
         self.assertNotEqual(self.preflight().returncode, 0)
         self.assertTrue(target.is_symlink())
 
@@ -865,27 +869,6 @@ class SourceTests(unittest.TestCase):
         repos = {line.split()[0] for line in (ROOT / "manifests/nvim-plugins.tsv").read_text().splitlines()
                  if line and not line.startswith("#")}
         self.assertEqual(set(lock), repos)
-        self.assertEqual(lock, json.loads((ROOT / "nvim/lazy-lock.json").read_text()))
-
-    def test_only_agreed_nvim_behavior_changes(self):
-        for path in (ROOT / "nvim").rglob("*"):
-            if not path.is_file() or path.name == "README.md":
-                continue
-            rel = path.relative_to(ROOT / "nvim")
-            new = ROOT / "home/dot_config/nvim" / rel
-            if str(rel) in ("lua/config/lazy.lua", "lua/plugins/formatting.lua", "lua/plugins/nvim-treesitter.lua"):
-                continue
-            self.assertEqual(path.read_bytes(), new.read_bytes(), str(rel))
-        old = (ROOT / "nvim/lua/plugins/formatting.lua").read_text()
-        new = (ROOT / "home/dot_config/nvim/lua/plugins/formatting.lua").read_text()
-        self.assertEqual(old.replace('\t\t\tbash = { "shfmt" },\n', ''), new)
-
-    def test_tmux_preserves_config_except_agreed_changes(self):
-        old = (ROOT / "tmux/tmux.conf").read_text()
-        new = (ROOT / "home/dot_config/tmux/tmux.conf").read_text()
-        self.assertEqual(old.replace("set -g @plugin 'omerxx/tmux-sessionx'\n", ""),
-                         new)
-        self.assertNotIn("sessionx", (ROOT / "manifests/tmux-plugins.tsv").read_text())
 
     def test_no_frontend_or_unagreed_packages(self):
         brewfile = (ROOT / "Brewfile").read_text()
@@ -894,6 +877,9 @@ class SourceTests(unittest.TestCase):
             self.assertNotIn(forbidden, packages)
         self.assertIn("fnm", packages)
         self.assertIn("ssh-copy-id", packages)
+        for path in (ROOT / "manifests/tmux-plugins.tsv", ROOT / "home/dot_config/tmux/tmux.conf"):
+            self.assertNotIn("tmux-sessionx", path.read_text())
+        self.assertNotIn("shfmt", (ROOT / "home/dot_config/nvim/lua/plugins/formatting.lua").read_text())
         for path in (ROOT / "scripts/bootstrap").glob("*.sh"):
             self.assertNotRegex(path.read_text(), r'\bfnm\s+install\b|\bnpm\s+(install|i)\b')
 

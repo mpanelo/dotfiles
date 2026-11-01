@@ -1,7 +1,10 @@
 .DS_Store
-macos/brew/Brewfile.lock.json
-tmux/plugins
-alacritty/themes
+# Retired symlink layouts can still contain private runtime files.
+/fish/
+/alacritty/
+/nvim/
+/tmux/
+/macos/
 fish_variables
 __pycache__/
 Brewfile.lock.json
