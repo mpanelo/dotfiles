@@ -17,6 +17,20 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def cleanup_workspace(workspace):
+    """Remove our private fixture, including read-only Go module cache dirs."""
+    if (not workspace.name.startswith(("dotfiles-chezmoi-test-", "dotfiles-editor-test-"))
+            or workspace.is_symlink() or not workspace.is_dir()):
+        raise RuntimeError("Refusing an unexpected integration workspace type")
+    for parent, _directories, _files in os.walk(workspace, followlinks=False):
+        path = Path(parent)
+        info = path.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid():
+            raise RuntimeError("Refusing an unowned integration directory")
+        path.chmod(stat.S_IMODE(info.st_mode) | stat.S_IWUSR | stat.S_IXUSR)
+    shutil.rmtree(workspace)
+
+
 def snapshot(tree):
     result = {}
     for path in sorted(tree.rglob("*")):
@@ -85,9 +99,9 @@ class Harness:
         self.checks = []
         self.command_log = self.workspace / "commands.log"
 
-    def run(self, command, *, env=None, data=None, success=True):
+    def run(self, command, *, env=None, data=None, success=True, timeout=90):
         result = subprocess.run(list(map(str, command)), env=env or self.env, input=data,
-                                capture_output=True, text=True, cwd=self.workspace, timeout=90)
+                                capture_output=True, text=True, cwd=self.workspace, timeout=timeout)
         if hasattr(self, "command_log"):
             with self.command_log.open("a") as stream:
                 stream.write("$ " + " ".join(map(str, command)) + "\n")
@@ -234,7 +248,7 @@ def main():
         if args.keep_workspace:
             print("Private test workspace:", workspace, flush=True)
         else:
-            shutil.rmtree(workspace)
+            cleanup_workspace(workspace)
 
 
 if __name__ == "__main__":

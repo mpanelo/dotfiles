@@ -100,21 +100,34 @@ migration output. Restoring configuration does not uninstall software.
 
 ## Testing
 
-GitHub Actions runs safety tests, ShellCheck, workflow linting, and isolated
-chezmoi deployment on Apple Silicon macOS. It does not run real provisioning.
+GitHub Actions runs safety tests, linting, isolated chezmoi deployment, and a fresh
+editor build on Apple Silicon macOS. The editor job checks real LSP attachment,
+completion, definitions, and format-on-save for Go, Rust, Lua, and Python, plus
+type diagnostics for Go, Lua, and Python. It leaves Rust's diagnostic policy unchanged.
+
+Every Monday at 16:23 UTC, the same checks run with a public-metadata update report
+in the Actions summary. Available versions are untested candidates; no pins or Mac
+installations change. Homebrew entries show available versions, not installed Mac
+versions. Incomplete lookups fail the report instead of claiming everything is current.
+Run the workflow manually for an on-demand report.
 
 From the repository:
 
 ```sh
 python3 tests/test_bootstrap.py
+python3 tests/test_updates.py
 shellcheck -x bootstrap.sh install.sh scripts/bootstrap/*.sh tests/run-isolated.sh
 tests/run-isolated.sh --smoke
 ```
 
-The integration test applies only to temporary fixtures and uses copied plugin
+The deployment test applies only to temporary fixtures and uses copied plugin
 caches. If chezmoi is missing, add `--download-chezmoi` for a checksum-verified
 temporary executable. These tests do not validate fresh package installation,
 live LSP attachment, or GUI rendering.
+
+The optional `python3 tests/editor_integration.py` downloads pinned tools and builds
+plugins in a disposable HOME. It requires Apple Silicon macOS and the prerequisites
+listed in that script. It does not install Homebrew packages or change live dotfiles.
 
 On the target Mac, check fonts/icons, bindings, clipboard, Fish integrations,
 and tmux battery status only on laptops. Verify Neovim completion, diagnostics,

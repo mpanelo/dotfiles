@@ -85,7 +85,7 @@ install_alacritty() (
         [[ $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$source/Contents/Info.plist") == org.alacritty ]] || die 'Unexpected app bundle identifier.'
         [[ $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$source/Contents/Info.plist") == "$pin" ]] || die 'Unexpected Alacritty version.'
         [[ -x "$source/Contents/MacOS/alacritty" ]] || die 'Alacritty app executable is missing or not executable.'
-        lipo -verify_arch "$(uname -m)" "$source/Contents/MacOS/alacritty" || die 'Alacritty does not support the native architecture.'
+        lipo "$source/Contents/MacOS/alacritty" -verify_arch "$(uname -m)" || die 'Alacritty does not support the native architecture.'
         mkdir -p "$HOME/Applications" "$STATE_DIR"
         stage=$(mktemp -d "$HOME/Applications/.dotfiles-alacritty.XXXXXX")
         # Preserve bundle metadata. Never remove quarantine or re-sign the app.

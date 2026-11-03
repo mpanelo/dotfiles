@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 16 * * 1'
 
 permissions:
   contents: read
@@ -58,5 +60,62 @@ jobs:
       - name: Run bootstrap safety tests
         run: python3 tests/test_bootstrap.py
 
+      - name: Test update reporting
+        run: python3 tests/test_updates.py
+
       - name: Check isolated chezmoi deployment
         run: tests/run-isolated.sh --download-chezmoi
+
+  editor:
+    name: Real editor integration
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - name: Install editor test prerequisites
+        run: brew install chezmoi git neovim go uv jq ripgrep fd lua-language-server stylua
+      - name: Build and test the pinned editor environment
+        run: python3 tests/editor_integration.py
+
+  updates:
+    name: Weekly update report
+    needs: [macos, editor]
+    if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - name: Report available updates without changing pins
+        env:
+          UPDATE_GITHUB_TOKEN: ${{ github.token }}
+          BASELINE_RESULT: ${{ needs.editor.result }}
+          SAFETY_RESULT: ${{ needs.macos.result }}
+        run: |
+          status=0
+          python3 scripts/check_updates.py --github-token-env UPDATE_GITHUB_TOKEN --baseline "$BASELINE_RESULT" --output "$RUNNER_TEMP/updates.md" || status=$?
+          if [[ -f "$RUNNER_TEMP/updates.md" ]]; then
+            cat "$RUNNER_TEMP/updates.md" >> "$GITHUB_STEP_SUMMARY"
+            printf '\nSafety checks: %s\n' "$SAFETY_RESULT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"

@@ -15,6 +15,8 @@ import sys
 import tempfile
 import unittest
 
+from test_chezmoi_integration import cleanup_workspace
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts/bootstrap"
 
@@ -95,6 +97,25 @@ class SafetyTests(unittest.TestCase):
 
     def preflight(self, *args):
         return self.run_script("preflight.sh", "--files-only", "--destination", str(self.home), *args)
+
+    def test_private_cleanup_handles_read_only_caches_without_following_links(self):
+        workspace = Path(self.tmp.name) / "dotfiles-editor-test-fixture"
+        cache = workspace / "module-cache/package"
+        cache.mkdir(parents=True)
+        (cache / "source.go").write_text("package fixture\n")
+        (cache / "source.go").chmod(0o444)
+        (workspace / "outside-link").symlink_to(self.home, target_is_directory=True)
+        sentinel = self.home / "untouched"
+        sentinel.write_text("preserve\n")
+        mode = self.home.stat().st_mode
+        cache.chmod(0o555)
+        cleanup_workspace(workspace)
+        self.assertFalse(workspace.exists())
+        self.assertEqual(sentinel.read_text(), "preserve\n")
+        self.assertEqual(self.home.stat().st_mode, mode)
+        with self.assertRaises(RuntimeError):
+            cleanup_workspace(self.home)
+        self.assertEqual(sentinel.read_text(), "preserve\n")
 
     def test_empty_destination_is_read_only_and_repeatable(self):
         for _ in range(2):
@@ -731,7 +752,7 @@ class TreeSitterTests(unittest.TestCase):
         self.log = self.root / "downloads.log"
         commands = {
             "curl": 'printf "%s\\n" "$*" >> "$DOWNLOAD_LOG"\nwhile [ "$1" != "-o" ]; do shift; done\ncp "$FIXTURE_ARCHIVE" "$2"\n',
-            "lipo": 'exit 0\n',
+            "lipo": '[ "$#" -eq 3 ] && [ -f "$1" ] && [ "$2" = -verify_arch ] && [ "$3" = ' + arch + ' ]\n',
             "uname": f'printf "{arch}\\n"\n',
         }
         for name, body in commands.items():
@@ -905,7 +926,7 @@ class AlacrittyTests(unittest.TestCase):
         commands = {
             "curl": 'printf "download\\n" >> "$CALL_LOG"\nwhile [ "$1" != "-o" ]; do shift; done\ncp "$FIXTURE_DMG" "$2"\n',
             "hdiutil": 'printf "%s\\n" "$1" >> "$CALL_LOG"\nif [ "$1" = attach ]; then\nwhile [ "$1" != "-mountpoint" ]; do shift; done\ncp -R "$FIXTURE_APP" "$2/Alacritty.app"\nfi\n',
-            "lipo": 'exit 0\n',
+            "lipo": '[ "$#" -eq 3 ] && [ -f "$1" ] && [ "$2" = -verify_arch ] && [ "$3" = arm64 ]\n',
             "infocmp": 'exit 0\n',  # Existing definitions must be preserved.
             "tic": 'printf "unexpected terminfo write\\n" >&2\nexit 1\n',
         }
