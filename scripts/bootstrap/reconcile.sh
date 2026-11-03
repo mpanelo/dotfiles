@@ -57,7 +57,7 @@ install_toolchains() {
         [[ ! -e "$HOME/.cargo/bin/rustup" && ! -L "$HOME/.cargo/bin/rustup" ]] || die 'Existing rustup path is not executable; review it before installation.'
         installer=$(mktemp -t dotfiles-rustup)
         download_installer "rustup-$(uname -m)" "$installer"
-        lipo -verify_arch "$(uname -m)" "$installer" || die 'rustup installer does not support the native architecture.'
+        lipo "$installer" -verify_arch "$(uname -m)" || die 'rustup installer does not support the native architecture.'
         chmod 700 "$installer"
         "$installer" -y --no-modify-path --default-toolchain none --profile minimal
         rm -f "$installer"

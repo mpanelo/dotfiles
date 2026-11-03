@@ -752,7 +752,7 @@ class TreeSitterTests(unittest.TestCase):
         self.log = self.root / "downloads.log"
         commands = {
             "curl": 'printf "%s\\n" "$*" >> "$DOWNLOAD_LOG"\nwhile [ "$1" != "-o" ]; do shift; done\ncp "$FIXTURE_ARCHIVE" "$2"\n',
-            "lipo": 'exit 0\n',
+            "lipo": '[ "$#" -eq 3 ] && [ -f "$1" ] && [ "$2" = -verify_arch ] && [ "$3" = ' + arch + ' ]\n',
             "uname": f'printf "{arch}\\n"\n',
         }
         for name, body in commands.items():
@@ -926,7 +926,7 @@ class AlacrittyTests(unittest.TestCase):
         commands = {
             "curl": 'printf "download\\n" >> "$CALL_LOG"\nwhile [ "$1" != "-o" ]; do shift; done\ncp "$FIXTURE_DMG" "$2"\n',
             "hdiutil": 'printf "%s\\n" "$1" >> "$CALL_LOG"\nif [ "$1" = attach ]; then\nwhile [ "$1" != "-mountpoint" ]; do shift; done\ncp -R "$FIXTURE_APP" "$2/Alacritty.app"\nfi\n',
-            "lipo": 'exit 0\n',
+            "lipo": '[ "$#" -eq 3 ] && [ -f "$1" ] && [ "$2" = -verify_arch ] && [ "$3" = arm64 ]\n',
             "infocmp": 'exit 0\n',  # Existing definitions must be preserved.
             "tic": 'printf "unexpected terminfo write\\n" >&2\nexit 1\n',
         }

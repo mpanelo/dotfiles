@@ -64,7 +64,7 @@ install_tree_sitter() (
         "https://github.com/tree-sitter/tree-sitter/releases/download/v$pin/tree-sitter-$asset.gz" -o "$work/tree-sitter.gz"
     [[ $(sha_file "$work/tree-sitter.gz") == "$archive" ]] || die 'Tree-sitter archive checksum mismatch; nothing was installed.'
     gzip -dc "$work/tree-sitter.gz" > "$work/tree-sitter"
-    lipo -verify_arch "$(uname -m)" "$work/tree-sitter" || die 'Tree-sitter binary does not support the native architecture.'
+    lipo "$work/tree-sitter" -verify_arch "$(uname -m)" || die 'Tree-sitter binary does not support the native architecture.'
     chmod 755 "$work/tree-sitter"
     actual=$("$work/tree-sitter" --version)
     [[ "$actual" == "tree-sitter $pin" || "$actual" == "tree-sitter $pin "* ]] || die 'Tree-sitter release version mismatch.'

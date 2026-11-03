@@ -85,7 +85,7 @@ class EditorHarness(Harness):
         # Reuse checksum verification, never the production reconciliation entry point.
         self.run(["/bin/bash", "-c", 'source "$1/scripts/bootstrap/lib.sh"; download_installer "rustup-$(uname -m)" "$2"',
                   "fixture", self.source, installer])
-        self.run(["lipo", "-verify_arch", platform.machine(), installer])
+        self.run(["lipo", installer, "-verify_arch", platform.machine()])
         installer.chmod(0o700)
         self.run([installer, "-y", "--no-modify-path", "--default-toolchain", "none", "--profile", "minimal"], timeout=300)
         self.run(["rustup", "toolchain", "install", self.versions["rust"], "--profile", "minimal",
