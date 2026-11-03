@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS validation
+    runs-on: macos-15
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install test dependencies
+        run: brew install fish jq neovim shellcheck actionlint
+
+      - name: Prepare pinned lazy.nvim test fixture
+        run: |
+          fixture="$RUNNER_TEMP/dotfiles-lazy.nvim"
+          commit=$(python3 -c 'import json; print(json.load(open("home/dot_config/nvim/lazy-lock.json"))["lazy.nvim"]["commit"])')
+          [[ "$commit" =~ ^[a-f0-9]{40}$ ]]
+          git init --quiet "$fixture"
+          git -C "$fixture" fetch --quiet --depth 1 https://github.com/folke/lazy.nvim.git "$commit"
+          git -C "$fixture" checkout --quiet --detach "$commit"
+          printf 'DOTFILES_TEST_LAZY_NVIM=%s\n' "$fixture" >> "$GITHUB_ENV"
+
+      - name: Lint shell scripts and workflow
+        run: |
+          shellcheck -x bootstrap.sh install.sh scripts/bootstrap/*.sh tests/run-isolated.sh
+          actionlint
+
+      - name: Run bootstrap safety tests
+        run: python3 tests/test_bootstrap.py
+
+      - name: Check isolated chezmoi deployment
+        run: tests/run-isolated.sh --download-chezmoi

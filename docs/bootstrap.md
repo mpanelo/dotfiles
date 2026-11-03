@@ -100,6 +100,9 @@ migration output. Restoring configuration does not uninstall software.
 
 ## Testing
 
+GitHub Actions runs safety tests, ShellCheck, workflow linting, and isolated
+chezmoi deployment on Apple Silicon macOS. It does not run real provisioning.
+
 From the repository:
 
 ```sh

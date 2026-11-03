@@ -644,12 +644,17 @@ class EditorBootstrapTests(unittest.TestCase):
 
     def prepare_editor(self, wrong_pin=False, parser_failure=""):
         executable = shutil.which("nvim")
-        cached = Path.home() / ".local/share/nvim/lazy/lazy.nvim"
+        explicit_fixture = os.environ.get("DOTFILES_TEST_LAZY_NVIM")
+        cached = Path(explicit_fixture) if explicit_fixture else Path.home() / ".local/share/nvim/lazy/lazy.nvim"
         if not executable or not (cached / ".git").is_dir():
+            if explicit_fixture:
+                self.fail("Requested lazy.nvim fixture or Neovim is missing")
             self.skipTest("requires an existing Neovim and pinned lazy.nvim cache; no download is attempted")
         expected = json.loads((ROOT / "home/dot_config/nvim/lazy-lock.json").read_text())["lazy.nvim"]["commit"]
         actual = subprocess.check_output(["git", "-C", str(cached), "rev-parse", "HEAD"], text=True).strip()
         if actual != expected:
+            if explicit_fixture:
+                self.fail("Requested lazy.nvim fixture does not match the lockfile")
             self.skipTest("cached lazy.nvim is not the pinned revision")
         subprocess.run(["git", "-C", str(cached), "diff", "--quiet", "HEAD", "--", "lua"], check=True)
         self.fixture = Path(self.tmp.name) / ("editor-" + (parser_failure or "normal"))
